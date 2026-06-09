@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>蛋白质折叠解谜</title>
+    <title>蛋白质折叠解谜 · Protein Fold</title>
     <!-- Three.js CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
@@ -11,15 +11,14 @@
             --primary: #1a2a4a;
             --secondary: #2d3436;
             --accent: #00d4aa;
+            --accent-glow: #00ffcc;
             --text: #ffffff;
             --text-muted: #a0a0a0;
+            --warn: #ffb74d;
+            --error: #ef5350;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -32,112 +31,147 @@
         /* 3D 画布容器 */
         #canvas-container {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             z-index: 0;
         }
 
         /* 顶部菜单 */
         .top-bar {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
+            top: 0; left: 0; right: 0;
             height: 60px;
-            background: rgba(26, 42, 74, 0.95);
-            backdrop-filter: blur(10px);
+            background: rgba(26, 42, 74, 0.92);
+            backdrop-filter: blur(12px);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 20px;
+            padding: 0 24px;
             z-index: 100;
             border-bottom: 1px solid rgba(0, 212, 170, 0.2);
         }
 
         .game-title {
-            font-size: 1.2rem;
+            font-size: 1.15rem;
             font-weight: 500;
             color: var(--accent);
+            letter-spacing: 2px;
         }
 
-        .top-nav {
-            display: flex;
-            gap: 20px;
+        .game-title .sub {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-left: 8px;
+            letter-spacing: 1px;
         }
+
+        .top-nav { display: flex; gap: 12px; }
 
         .nav-btn {
-            padding: 8px 16px;
+            padding: 8px 14px;
             background: transparent;
             border: 1px solid rgba(0, 212, 170, 0.3);
             border-radius: 6px;
             color: var(--text);
             cursor: pointer;
             transition: all 0.3s ease;
-            font-size: 0.9rem;
+            font-size: 0.88rem;
         }
-
-        .nav-btn:hover, .nav-btn.active {
-            background: var(--accent);
-            color: var(--primary);
-            border-color: var(--accent);
-        }
+        .nav-btn:hover { background: var(--accent); color: var(--primary); border-color: var(--accent); }
+        .nav-btn.primary { background: var(--accent); color: var(--primary); border-color: var(--accent); }
+        .nav-btn.primary:hover { background: var(--accent-glow); }
 
         /* 侧边信息面板 */
         .side-panel {
             position: fixed;
             right: 20px;
             top: 80px;
-            width: 280px;
-            background: rgba(26, 42, 74, 0.95);
-            backdrop-filter: blur(10px);
+            width: 300px;
+            background: rgba(26, 42, 74, 0.92);
+            backdrop-filter: blur(12px);
             border: 1px solid rgba(0, 212, 170, 0.2);
-            border-radius: 12px;
-            padding: 20px;
+            border-radius: 14px;
+            padding: 22px;
             z-index: 100;
         }
 
+        .panel-section { margin-bottom: 22px; }
+        .panel-section:last-child { margin-bottom: 0; }
+
         .panel-title {
-            font-size: 0.9rem;
+            font-size: 0.78rem;
             color: var(--accent);
-            margin-bottom: 16px;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            font-weight: 500;
         }
 
         .score-display {
-            font-size: 2rem;
+            font-size: 2.4rem;
             font-weight: 600;
             color: var(--accent);
-            margin-bottom: 8px;
+            margin-bottom: 4px;
+            text-shadow: 0 0 20px rgba(0, 212, 170, 0.3);
         }
 
         .score-label {
             font-size: 0.8rem;
             color: var(--text-muted);
-            margin-bottom: 20px;
         }
 
-        .level-info {
+        .score-target {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+        .score-target .val { color: var(--accent); font-weight: 600; }
+
+        /* 进度条 */
+        .progress-bar {
+            height: 6px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--accent-glow));
+            border-radius: 3px;
+            transition: width 0.4s ease;
+            box-shadow: 0 0 10px rgba(0, 212, 170, 0.5);
+        }
+
+        .info-row {
             display: flex;
             justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .level-info:last-child {
-            border-bottom: none;
-        }
-
-        .level-label {
-            color: var(--text-muted);
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
             font-size: 0.9rem;
         }
+        .info-row:last-child { border-bottom: none; }
+        .info-row .label { color: var(--text-muted); }
+        .info-row .value { color: var(--accent); font-weight: 500; }
 
-        .level-value {
-            color: var(--text);
-            font-size: 0.9rem;
+        /* 氨基酸图例 */
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.82rem;
+        }
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            box-shadow: 0 0 8px currentColor;
         }
 
         /* 操作提示 */
@@ -146,29 +180,61 @@
             bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(26, 42, 74, 0.95);
-            backdrop-filter: blur(10px);
+            background: rgba(26, 42, 74, 0.92);
+            backdrop-filter: blur(12px);
             border: 1px solid rgba(0, 212, 170, 0.2);
-            border-radius: 8px;
-            padding: 12px 24px;
+            border-radius: 10px;
+            padding: 12px 22px;
             z-index: 100;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             color: var(--text-muted);
+            text-align: center;
+            line-height: 1.8;
+        }
+        .control-hint .key {
+            color: var(--accent);
+            padding: 1px 6px;
+            margin: 0 2px;
+            background: rgba(0,212,170,0.12);
+            border: 1px solid rgba(0,212,170,0.3);
+            border-radius: 4px;
+            font-size: 0.78rem;
         }
 
-        .control-hint span {
-            color: var(--accent);
-            margin: 0 4px;
+        /* 信息弹窗 */
+        .info-tooltip {
+            position: fixed;
+            left: 20px;
+            top: 80px;
+            width: 260px;
+            background: rgba(26, 42, 74, 0.92);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 212, 170, 0.2);
+            border-radius: 12px;
+            padding: 18px 20px;
+            z-index: 100;
         }
+        .info-tooltip h4 {
+            color: var(--accent);
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            font-weight: 500;
+            letter-spacing: 1px;
+        }
+        .info-tooltip p {
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+        .info-tooltip .highlight { color: var(--accent); font-weight: 500; }
 
         /* 开始菜单 */
         .menu-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(26, 42, 74, 0.98);
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(10, 18, 35, 0.96);
+            backdrop-filter: blur(14px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -176,158 +242,293 @@
         }
 
         .menu-content {
+            max-width: 640px;
+            padding: 48px 40px;
             text-align: center;
-            max-width: 500px;
-            padding: 40px;
         }
 
         .menu-content h1 {
-            font-size: 2.5rem;
+            font-size: 2.4rem;
             font-weight: 300;
             color: var(--accent);
-            margin-bottom: 16px;
-            letter-spacing: 4px;
+            margin-bottom: 12px;
+            letter-spacing: 6px;
         }
-
-        .menu-content p {
+        .menu-content .subtitle {
+            font-size: 0.95rem;
             color: var(--text-muted);
             margin-bottom: 40px;
-            line-height: 1.8;
+            letter-spacing: 2px;
         }
+
+        .menu-text {
+            color: var(--text);
+            line-height: 1.8;
+            margin-bottom: 32px;
+            font-size: 0.92rem;
+            text-align: left;
+            background: rgba(0,0,0,0.25);
+            padding: 20px 24px;
+            border-radius: 10px;
+            border-left: 2px solid var(--accent);
+        }
+        .menu-text strong { color: var(--accent); }
 
         .menu-btn {
             display: block;
             width: 100%;
-            padding: 16px 32px;
-            margin-bottom: 16px;
+            padding: 14px 32px;
+            margin-bottom: 12px;
             background: transparent;
             border: 1px solid var(--accent);
             border-radius: 8px;
             color: var(--accent);
-            font-size: 1.1rem;
+            font-size: 1rem;
             cursor: pointer;
             transition: all 0.3s ease;
         }
+        .menu-btn:hover { background: var(--accent); color: var(--primary); }
+        .menu-btn.primary { background: var(--accent); color: var(--primary); }
+        .menu-btn.primary:hover { background: var(--accent-glow); transform: translateY(-1px); }
 
-        .menu-btn:hover {
-            background: var(--accent);
-            color: var(--primary);
-        }
-
-        .menu-btn.secondary {
-            border-color: rgba(255, 255, 255, 0.2);
+        .menu-footer {
+            margin-top: 24px;
+            font-size: 0.8rem;
             color: var(--text-muted);
         }
 
-        .menu-btn.secondary:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: var(--text);
+        /* 关卡选择 */
+        .level-select-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(10, 18, 35, 0.97);
+            backdrop-filter: blur(14px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+        .level-select-overlay.active { display: flex; }
+
+        .level-select-content {
+            max-width: 720px;
+            padding: 40px;
+            width: 90%;
+        }
+        .level-select-content h2 {
+            font-size: 1.8rem;
+            font-weight: 300;
+            color: var(--accent);
+            margin-bottom: 8px;
+            text-align: center;
+            letter-spacing: 3px;
+        }
+        .level-select-content .desc {
+            color: var(--text-muted);
+            text-align: center;
+            margin-bottom: 28px;
+            font-size: 0.9rem;
         }
 
-        /* 新手引导 */
-        .guide-overlay {
+        .level-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+        .level-card {
+            background: rgba(0,212,170,0.06);
+            border: 1px solid rgba(0,212,170,0.2);
+            border-radius: 12px;
+            padding: 18px 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            position: relative;
+        }
+        .level-card:hover:not(.locked) {
+            background: rgba(0,212,170,0.15);
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+        .level-card.locked { opacity: 0.4; cursor: not-allowed; }
+        .level-card.completed { border-color: var(--accent); }
+        .level-card.completed::after {
+            content: '✓';
+            position: absolute;
+            top: 8px; right: 10px;
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        .level-num {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+        .level-name {
+            font-size: 0.92rem;
+            margin-bottom: 6px;
+            color: var(--text);
+        }
+        .level-target {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+        .level-best {
+            font-size: 0.78rem;
+            color: var(--accent);
+            margin-top: 4px;
+        }
+        .level-card.locked .level-num::after {
+            content: ' 🔒';
+            font-size: 0.9rem;
+        }
+
+        /* 成功弹窗 */
+        .success-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.85);
-            display: flex;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(10, 18, 35, 0.88);
+            backdrop-filter: blur(10px);
+            display: none;
             align-items: center;
             justify-content: center;
             z-index: 300;
+            animation: fadeIn 0.4s ease;
         }
+        .success-overlay.active { display: flex; }
+
+        .success-content {
+            background: linear-gradient(135deg, rgba(26,42,74,0.98), rgba(45,52,54,0.98));
+            border: 1px solid var(--accent);
+            border-radius: 18px;
+            padding: 40px;
+            text-align: center;
+            max-width: 460px;
+            box-shadow: 0 20px 60px rgba(0,212,170,0.25);
+            animation: popIn 0.5s cubic-bezier(0.17, 0.67, 0.42, 1.3);
+        }
+        .success-icon { font-size: 72px; margin-bottom: 16px; animation: pulse 1.5s infinite; }
+        .success-content h2 {
+            font-size: 1.8rem;
+            color: var(--accent);
+            margin-bottom: 8px;
+            font-weight: 400;
+            letter-spacing: 3px;
+        }
+        .success-content .score-line {
+            font-size: 2.6rem;
+            color: var(--accent);
+            margin: 16px 0;
+            font-weight: 600;
+            text-shadow: 0 0 24px rgba(0,212,170,0.4);
+        }
+        .success-content .detail {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+            line-height: 1.7;
+        }
+        .success-content .learning {
+            background: rgba(0,212,170,0.08);
+            padding: 14px 18px;
+            border-radius: 8px;
+            margin: 16px 0 24px;
+            font-size: 0.85rem;
+            color: var(--text);
+            line-height: 1.6;
+            border-left: 2px solid var(--accent);
+            text-align: left;
+        }
+        .success-content .learning strong { color: var(--accent); }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.8) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+
+        /* 引导 */
+        .guide-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 400;
+        }
+        .guide-overlay.active { display: flex; }
 
         .guide-card {
             background: var(--primary);
             border: 1px solid var(--accent);
             border-radius: 16px;
-            padding: 40px;
-            max-width: 450px;
+            padding: 36px;
+            max-width: 480px;
             text-align: center;
         }
-
+        .guide-icon { font-size: 56px; margin-bottom: 16px; }
         .guide-card h3 {
             color: var(--accent);
             font-size: 1.3rem;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
+            font-weight: 500;
         }
-
         .guide-card p {
             color: var(--text);
             line-height: 1.8;
-            margin-bottom: 24px;
-        }
-
-        .guide-icon {
-            font-size: 48px;
             margin-bottom: 20px;
+            font-size: 0.95rem;
         }
-
+        .guide-card p .em { color: var(--accent); font-weight: 500; }
         .guide-btn {
             padding: 12px 32px;
             background: var(--accent);
             border: none;
             border-radius: 8px;
             color: var(--primary);
-            font-size: 1rem;
+            font-size: 0.95rem;
             cursor: pointer;
             transition: all 0.3s ease;
+            font-weight: 500;
         }
+        .guide-btn:hover { background: var(--accent-glow); transform: scale(1.02); }
 
-        .guide-btn:hover {
-            transform: scale(1.05);
-        }
-
-        /* 关卡选择 */
-        .level-select {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-            margin-top: 20px;
-        }
-
-        .level-btn {
-            padding: 16px;
-            background: rgba(0, 212, 170, 0.1);
-            border: 1px solid rgba(0, 212, 170, 0.3);
+        /* 原子选中效果 */
+        .selected-indicator {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,212,170,0.15);
+            border: 1px solid var(--accent);
+            padding: 10px 20px;
             border-radius: 8px;
-            color: var(--text);
-            cursor: pointer;
-            transition: all 0.3s ease;
+            font-size: 0.85rem;
+            color: var(--accent);
+            z-index: 50;
+            display: none;
         }
-
-        .level-btn:hover:not(:disabled) {
-            background: var(--accent);
-            color: var(--primary);
-        }
-
-        .level-btn:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-        }
-
-        .level-btn.locked::after {
-            content: ' 🔒';
-        }
-
-        /* 隐藏类 */
-        .hidden {
-            display: none !important;
-        }
+        .selected-indicator.active { display: block; }
 
         /* 移动端适配 */
-        @media (max-width: 768px) {
-            .side-panel {
-                right: 10px;
-                width: 200px;
-                padding: 16px;
-            }
-
-            .control-hint {
-                font-size: 0.8rem;
-                padding: 10px 16px;
-            }
+        @media (max-width: 900px) {
+            .side-panel { width: 200px; padding: 16px; right: 10px; }
+            .info-tooltip { width: 200px; left: 10px; padding: 14px; }
+            .score-display { font-size: 1.8rem; }
+            .top-bar { padding: 0 14px; }
+            .game-title { font-size: 1rem; }
+            .game-title .sub { display: none; }
+        }
+        @media (max-width: 640px) {
+            .side-panel, .info-tooltip { display: none; }
         }
     </style>
 </head>
@@ -337,144 +538,266 @@
 
     <!-- 顶部菜单 -->
     <div class="top-bar" id="topBar">
-        <span class="game-title">🧬 蛋白质折叠解谜</span>
+        <span class="game-title">🧬 蛋白质折叠解谜<span class="sub">PROTEIN FOLD · 基于 Foldit 开源项目改造</span></span>
         <div class="top-nav">
-            <button class="nav-btn" onclick="showMenu()">菜单</button>
+            <button class="nav-btn" onclick="showLevelSelect()">选择关卡</button>
+            <button class="nav-btn" onclick="shakeProtein()">自动摇一摇</button>
             <button class="nav-btn" onclick="resetProtein()">重置</button>
+            <button class="nav-btn primary" onclick="showMenu()">主菜单</button>
         </div>
+    </div>
+
+    <!-- 左侧知识卡片 -->
+    <div class="info-tooltip" id="infoTooltip">
+        <h4>💡 科学知识</h4>
+        <p id="knowledgeText">
+            蛋白质由 <span class="highlight">20 种氨基酸</span> 通过肽键连接成链。
+            在水中，<span class="highlight">疏水氨基酸</span>（橙色）会相互聚集避开水分子，
+            <span class="highlight">亲水氨基酸</span>（青色）则暴露在表面。
+            这种"疏水塌缩"是蛋白质折叠的主要驱动力。
+        </p>
+    </div>
+
+    <!-- 选中提示 -->
+    <div class="selected-indicator" id="selectedIndicator">
+        已选中原子 — 拖拽进行折叠 · 点击空白处取消
     </div>
 
     <!-- 侧边信息面板 -->
     <div class="side-panel" id="sidePanel">
-        <div class="panel-title">当前状态</div>
-        <div class="score-display" id="score">0</div>
-        <div class="score-label">折叠评分</div>
+        <div class="panel-section">
+            <div class="panel-title">当前得分 Score</div>
+            <div class="score-display" id="score">0</div>
+            <div class="score-target">目标分数：<span class="val" id="targetScore">100</span></div>
+            <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width: 0%"></div></div>
+        </div>
 
-        <div class="level-info">
-            <span class="level-label">关卡</span>
-            <span class="level-value" id="currentLevel">新手-1</span>
+        <div class="panel-section">
+            <div class="panel-title">关卡信息 Level</div>
+            <div class="info-row"><span class="label">当前关卡</span><span class="value" id="currentLevel">新手-1</span></div>
+            <div class="info-row"><span class="label">最佳记录</span><span class="value" id="bestScore">0</span></div>
+            <div class="info-row"><span class="label">序列长度</span><span class="value" id="seqLen">12</span></div>
         </div>
-        <div class="level-info">
-            <span class="level-label">目标分数</span>
-            <span class="level-value" id="targetScore">100</span>
+
+        <div class="panel-section">
+            <div class="panel-title">能量分项 Energy</div>
+            <div class="info-row"><span class="label">疏水作用</span><span class="value" id="energyHydro">0</span></div>
+            <div class="info-row"><span class="label">键长张力</span><span class="value" id="energyBond">0</span></div>
+            <div class="info-row"><span class="label">空间位阻</span><span class="value" id="energyClash">0</span></div>
         </div>
-        <div class="level-info">
-            <span class="level-label">最优分数</span>
-            <span class="level-value" id="bestScore">0</span>
+
+        <div class="panel-section">
+            <div class="panel-title">氨基酸图例</div>
+            <div class="legend">
+                <div class="legend-item"><span class="legend-dot" style="background:#ff8a65; color:#ff8a65;"></span>疏水 (H)</div>
+                <div class="legend-item"><span class="legend-dot" style="background:#4dd0e1; color:#4dd0e1;"></span>亲水 (P)</div>
+                <div class="legend-item"><span class="legend-dot" style="background:#ba68c8; color:#ba68c8;"></span>正电荷 (+)</div>
+                <div class="legend-item"><span class="legend-dot" style="background:#ffd54f; color:#ffd54f;"></span>负电荷 (-)</div>
+            </div>
         </div>
     </div>
 
     <!-- 操作提示 -->
     <div class="control-hint" id="controlHint">
-        <span>拖拽</span> 旋转视角 | <span>滚轮</span> 缩放 | <span>点击原子</span> 选择 | <span>拖拽原子</span> 折叠
+        <span class="key">拖拽空白</span> 旋转视角 ·
+        <span class="key">滚轮</span> 缩放 ·
+        <span class="key">点击原子</span> 选中并拖拽折叠 ·
+        <span class="key">空格</span> 自动摇一摇
     </div>
 
     <!-- 开始菜单 -->
     <div class="menu-overlay" id="menuOverlay">
         <div class="menu-content">
-            <h1>蛋白质折叠解谜</h1>
-            <p>
-                基于 GitHub foldit/foldit 开源项目二次开发<br>
-                通过拖拽氨基酸链，将其折叠成正确的3D结构<br>
-                达到目标分数即可通关
-            </p>
-            <button class="menu-btn" onclick="startGame('tutorial')">开始游戏</button>
-            <button class="menu-btn" onclick="showLevelSelect()">选择关卡</button>
-            <button class="menu-btn secondary" onclick="location.href='../../index.html'">返回首页</button>
-        </div>
-    </div>
+            <h1>🧬 PROTEIN FOLD</h1>
+            <p class="subtitle">蛋白质折叠 · 科学解谜游戏</p>
 
-    <!-- 新手引导 -->
-    <div class="guide-overlay hidden" id="guideOverlay">
-        <div class="guide-card">
-            <div class="guide-icon" id="guideIcon">👋</div>
-            <h3 id="guideTitle">欢迎来到蛋白质折叠世界</h3>
-            <p id="guideText">
-                蛋白质是由氨基酸组成的长链分子。<br>
-                它会自发地折叠成特定的三维结构。<br><br>
-                你的任务是帮助蛋白质折叠成正确形状！
-            </p>
-            <button class="guide-btn" onclick="nextGuide()">下一步</button>
+            <div class="menu-text">
+                <strong>🧪 游戏目标</strong><br>
+                通过拖拽调整氨基酸链的空间结构，让蛋白质折叠到<strong>能量最低</strong>的稳定状态。<br><br>
+                <strong>⚛️ 科学原理</strong><br>
+                · 疏水氨基酸（H）应相互聚集在内部<br>
+                · 亲水氨基酸（P）倾向于暴露在表面<br>
+                · 相反电荷（+/-）相互吸引形成盐键<br>
+                · 避免原子过于靠近造成空间位阻<br><br>
+                <strong>🎯 评分机制</strong><br>
+                分数越高代表结构越稳定。达到目标分数即可通关。
+            </div>
+
+            <button class="menu-btn primary" onclick="startGame(null)">▶ 开始游戏（推荐）</button>
+            <button class="menu-btn" onclick="showLevelSelect()">📂 选择关卡</button>
+            <button class="menu-btn" onclick="location.href='../../index.html'">← 返回首页</button>
+
+            <p class="menu-footer">基于 Foldit 开源项目改造 · 网页版轻量实现</p>
         </div>
     </div>
 
     <!-- 关卡选择 -->
-    <div class="menu-overlay hidden" id="levelSelectOverlay">
-        <div class="menu-content">
-            <h1>选择关卡</h1>
-            <div class="level-select" id="levelSelectGrid"></div>
-            <button class="menu-btn secondary" style="margin-top: 20px" onclick="hideLevelSelect()">返回</button>
+    <div class="level-select-overlay" id="levelSelectOverlay">
+        <div class="level-select-content">
+            <h2>选择关卡</h2>
+            <p class="desc">每个关卡代表不同类型的蛋白质序列挑战</p>
+            <div class="level-grid" id="levelGrid"></div>
+            <button class="menu-btn" onclick="hideLevelSelect()">返回</button>
+        </div>
+    </div>
+
+    <!-- 成功弹窗 -->
+    <div class="success-overlay" id="successOverlay">
+        <div class="success-content">
+            <div class="success-icon">🎉</div>
+            <h2>折叠成功！</h2>
+            <div class="score-line"><span id="finalScore">0</span> / <span id="finalTarget">100</span></div>
+            <div class="detail" id="successDetail">你找到了一个稳定的蛋白质构象！</div>
+            <div class="learning" id="learningText"></div>
+            <button class="guide-btn" onclick="nextLevel()" style="margin-right:10px;">下一关 →</button>
+            <button class="menu-btn" style="display:inline-block; width:auto; padding:12px 24px; margin-top:0;" onclick="hideSuccess()">继续探索</button>
+        </div>
+    </div>
+
+    <!-- 新手引导 -->
+    <div class="guide-overlay" id="guideOverlay">
+        <div class="guide-card">
+            <div class="guide-icon" id="guideIcon">👋</div>
+            <h3 id="guideTitle">欢迎来到蛋白质折叠世界</h3>
+            <p id="guideText">
+                蛋白质是由氨基酸组成的长链分子。每一种蛋白质都必须折叠成
+                <span class="em">特定的三维形状</span>才能发挥功能。错误折叠的蛋白质
+                与阿尔茨海默症、帕金森症等疾病相关。
+            </p>
+            <button class="guide-btn" onclick="nextGuide()">下一步 →</button>
         </div>
     </div>
 
     <script>
-    /**
-     * 本模块基于 GitHub foldit/foldit 开源项目二次开发
-     * 开源协议：遵循原项目协议
-     * 用途：科研蛋白折叠解谜游戏，仅做网页适配与界面改造
-     */
+    /* ===================================================================
+     * 本模块基于 GitHub foldit/foldit 开源项目改造
+     * 开源项目：Foldit (University of Washington)
+     * GitHub 地址：https://github.com/foldit/foldit
+     * 用途：蛋白质折叠解谜 · 网页端轻量实现
+     * 说明：此为教学/演示用版本，评分算法简化自 Foldit 的 Rosetta 能量函数
+     * =================================================================== */
 
-    // ============ 游戏配置 ============
+    /* ======================= 关卡配置 ======================= */
+    // AA 类型：H=疏水(hydrophobic), P=亲水(polar), +正电, -负电
     const LEVELS = [
-        { id: 'tutorial', name: '新手-1', target: 80, unlocked: true },
-        { id: 'tutorial2', name: '新手-2', target: 100, unlocked: true },
-        { id: 'basic1', name: '入门-1', target: 120, unlocked: false },
-        { id: 'basic2', name: '入门-2', target: 140, unlocked: false },
-        { id: 'normal1', name: '普通-1', target: 160, unlocked: false },
-        { id: 'normal2', name: '普通-2', target: 180, unlocked: false },
+        {
+            id: 'tutorial',
+            name: '新手-1',
+            fullName: '简单两亲链',
+            target: 120,
+            unlocked: true,
+            sequence: 'HPPHPPHPPHPH',  // 交替疏水-亲水
+            knowledge: '这是一条简单的氨基酸链（HP 模型）。尝试将疏水（橙色）氨基酸聚拢在一起，形成"疏水核"。',
+            learning: '✅ 疏水塌缩（Hydrophobic Collapse）：在水溶液中，疏水氨基酸倾向于聚集在蛋白质内部以减少与水的接触面积，这是蛋白质自发折叠的主要驱动力。'
+        },
+        {
+            id: 'tutorial2',
+            name: '新手-2',
+            target: 150,
+            unlocked: true,
+            sequence: 'HHHPPPHHHPPPHHH',
+            knowledge: '长链氨基酸。疏水区域（连续的 H）应该形成一个紧凑的核心。',
+            learning: '✅ 蛋白质通常具有疏水内核与亲水外壳。这个简单的原则决定了球状蛋白的基本架构。'
+        },
+        {
+            id: 'basic1',
+            name: '入门-1',
+            target: 180,
+            unlocked: true,
+            sequence: 'H+P-H+P-H+P-H+P-',
+            knowledge: '注意电荷！正电氨基酸（紫色 +）和负电氨基酸（黄色 -）之间可以形成<strong>盐键</strong>，大幅稳定结构。',
+            learning: '✅ 盐键（Salt Bridge）：带相反电荷的氨基酸侧链之间形成的离子键，是稳定蛋白质三级结构的重要作用力之一。'
+        },
+        {
+            id: 'basic2',
+            name: '入门-2',
+            target: 200,
+            unlocked: false,
+            sequence: 'HHH-PPP-HHH-PPP-+-',
+            knowledge: '这个序列有明显的区域划分。让疏水端聚集，让电荷对相互靠近。',
+            learning: '✅ 蛋白质的结构层次：一级（序列）→ 二级（α螺旋/β折叠）→ 三级（整体折叠）→ 四级（多亚基）。'
+        },
+        {
+            id: 'normal1',
+            name: '进阶-1',
+            target: 220,
+            unlocked: false,
+            sequence: 'H-P+H-H+P-P-HH+-P-HH',
+            knowledge: '复杂序列挑战。仔细观察每个氨基酸的性质，合理排布它们的空间位置。',
+            learning: '✅ Levinthal 悖论：一个蛋白质有天文数字的可能构象，但它能在毫秒级时间内找到天然状态——说明折叠不是随机搜索，而是沿着"漏斗"状能量面下降。'
+        },
+        {
+            id: 'normal2',
+            name: '进阶-2',
+            target: 260,
+            unlocked: false,
+            sequence: 'HH-PP-+-HH-PP-+-HH-PP',
+            knowledge: '最终挑战！追求完美的疏水核 + 完美的电荷配对。',
+            learning: '✅ 在 Foldit 游戏中，全球玩家的解决方案被用于真实的蛋白质结构预测研究，甚至帮助解析了困扰科学家十年的艾滋病毒蛋白酶结构！'
+        }
     ];
 
-    const GUIDE_STEPS = [
-        { icon: '👋', title: '欢迎来到蛋白质折叠世界', text: '蛋白质是由氨基酸组成的长链分子。它会自发地折叠成特定的三维结构。' },
-        { icon: '🖱️', title: '基本操作', text: '拖拽空白区域旋转视角，滚轮缩放。点击原子选中它，然后拖拽进行折叠。' },
-        { icon: '🎯', title: '游戏目标', text: '让氨基酸链折叠成紧密的结构，评分达到目标分数即可过关。' },
-        { icon: '🎮', title: '开始游戏', text: '了解了基本操作后，开始你的蛋白质折叠之旅吧！' },
-    ];
-
-    // ============ 全局变量 ============
-    let scene, camera, renderer, controls;
-    let protein = null;
+    /* ======================= 全局变量 ======================= */
+    let scene, camera, renderer;
+    let protein = null;           // THREE.Group
+    let atoms = [];               // [{mesh, type, idx, pos: Vector3}]
+    let bonds = [];               // 连接线对象
     let selectedAtom = null;
     let isDragging = false;
-    let previousMousePosition = { x: 0, y: 0 };
-    let currentLevel = 'tutorial';
+    let isAtomDrag = false;
+    let previousMouse = { x: 0, y: 0 };
+    let currentLevelIdx = 0;
     let score = 0;
+    let energy = { hydro: 0, bond: 0, clash: 0, charge: 0 };
     let guideStep = 0;
+    let targetScore = 100;
 
-    // ============ Three.js 初始化 ============
+    // 氨基酸颜色
+    const AA_COLORS = {
+        'H': 0xff8a65,   // 疏水 - 橙红
+        'P': 0x4dd0e1,   // 亲水 - 青色
+        '+': 0xba68c8,   // 正电 - 紫色
+        '-': 0xffd54f    // 负电 - 黄色
+    };
+    const AA_RADIUS = { 'H': 0.9, 'P': 0.85, '+': 0.85, '-': 0.85 };
+
+    /* ======================= Three.js 初始化 ======================= */
     function init3D() {
         const container = document.getElementById('canvas-container');
 
-        // 场景
         scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x1a2a4a);
+        scene.background = new THREE.Color(0x0f1e3c);
+        scene.fog = new THREE.Fog(0x0f1e3c, 25, 80);
 
-        // 相机
-        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 0, 30);
+        camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 2, 18);
 
-        // 渲染器
-        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
         container.appendChild(renderer.domElement);
 
         // 光照
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.45);
         scene.add(ambientLight);
 
-        const directionalLight = new THREE.DirectionalLight(0x00d4aa, 0.8);
-        directionalLight.position.set(10, 10, 10);
-        scene.add(directionalLight);
+        const keyLight = new THREE.DirectionalLight(0x00d4aa, 0.35);
+        keyLight.position.set(10, 10, 10);
+        scene.add(keyLight);
 
-        const pointLight = new THREE.PointLight(0x00ffcc, 0.5);
-        pointLight.position.set(-10, -10, 10);
-        scene.add(pointLight);
+        const fillLight = new THREE.DirectionalLight(0xffffff, 0.4);
+        fillLight.position.set(-5, -5, 8);
+        scene.add(fillLight);
 
-        // 创建蛋白质
-        createProtein();
+        const rimLight = new THREE.PointLight(0x00ffcc, 0.5, 30);
+        rimLight.position.set(-8, 5, -8);
+        scene.add(rimLight);
 
-        // 添加鼠标事件
+        // 背景粒子
+        createBackgroundParticles();
+
+        // 事件
         renderer.domElement.addEventListener('mousedown', onMouseDown);
         renderer.domElement.addEventListener('mousemove', onMouseMove);
         renderer.domElement.addEventListener('mouseup', onMouseUp);
@@ -482,153 +805,328 @@
         renderer.domElement.addEventListener('touchstart', onTouchStart, { passive: false });
         renderer.domElement.addEventListener('touchmove', onTouchMove, { passive: false });
         renderer.domElement.addEventListener('touchend', onTouchEnd);
-
-        // 响应式
         window.addEventListener('resize', onWindowResize);
+        window.addEventListener('keydown', onKeyDown);
 
-        // 动画循环
         animate();
     }
 
-    // ============ 蛋白质创建 ============
-    function createProtein() {
-        if (protein) {
-            scene.remove(protein);
+    function createBackgroundParticles() {
+        const geo = new THREE.BufferGeometry();
+        const count = 400;
+        const positions = new Float32Array(count * 3);
+        for (let i = 0; i < count; i++) {
+            positions[i * 3] = (Math.random() - 0.5) * 80;
+            positions[i * 3 + 1] = (Math.random() - 0.5) * 80;
+            positions[i * 3 + 2] = (Math.random() - 0.5) * 80 - 20;
         }
-
-        protein = new THREE.Group();
-
-        // 氨基酸数据 - 简化的折叠链
-        const atomCount = 12;
-        const colors = [0x00d4aa, 0x00a080, 0x00ffcc, 0x00cc99];
-
-        for (let i = 0; i < atomCount; i++) {
-            const geometry = new THREE.SphereGeometry(0.8, 32, 32);
-            const material = new THREE.MeshPhongMaterial({
-                color: colors[i % colors.length],
-                emissive: 0x003322,
-                shininess: 100
-            });
-            const atom = new THREE.Mesh(geometry, material);
-
-            // 初始位置 - 螺旋状排列
-            const angle = (i / atomCount) * Math.PI * 4;
-            const radius = 2;
-            atom.position.x = Math.cos(angle) * radius;
-            atom.position.y = (i - atomCount / 2) * 1.5;
-            atom.position.z = Math.sin(angle) * radius;
-
-            atom.userData = { index: i, originalPos: atom.position.clone() };
-            protein.add(atom);
-        }
-
-        // 添加连接线
-        const lineGeometry = new THREE.BufferGeometry();
-        const positions = [];
-        for (let i = 0; i < atomCount - 1; i++) {
-            const pos1 = protein.children[i].position;
-            const pos2 = protein.children[i + 1].position;
-            positions.push(pos1.x, pos1.y, pos1.z);
-            positions.push(pos2.x, pos2.y, pos2.z);
-        }
-        lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-        const lineMaterial = new THREE.LineBasicMaterial({ color: 0x00d4aa, opacity: 0.5, transparent: true });
-        const lines = new THREE.LineSegments(lineGeometry, lineMaterial);
-        protein.add(lines);
-
-        scene.add(protein);
-
-        // 随机扰动初始结构
-        randomizeProtein();
+        geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const mat = new THREE.PointsMaterial({
+            color: 0x00d4aa,
+            size: 0.08,
+            transparent: true,
+            opacity: 0.35
+        });
+        const pts = new THREE.Points(geo, mat);
+        pts.userData.isBackdrop = true;
+        scene.add(pts);
     }
 
-    function randomizeProtein() {
-        for (let i = 0; i < protein.children.length; i++) {
-            const atom = protein.children[i];
-            if (atom instanceof THREE.Mesh) {
-                atom.position.x += (Math.random() - 0.5) * 4;
-                atom.position.z += (Math.random() - 0.5) * 4;
+    /* ======================= 解析序列 & 构建蛋白 ======================= */
+    function parseSequence(seq) {
+        // 支持 'H', 'P', '+', '-' 以及带分隔符（空格/-）的写法
+        const chars = [];
+        for (const ch of seq) {
+            if ('HP+-'.includes(ch)) chars.push(ch);
+        }
+        return chars;
+    }
+
+    function createProtein(levelIdx) {
+        // 清理
+        if (protein) {
+            scene.remove(protein);
+            protein.traverse(obj => {
+                if (obj.geometry) obj.geometry.dispose();
+                if (obj.material) obj.material.dispose();
+            });
+        }
+        atoms = [];
+        bonds = [];
+        protein = new THREE.Group();
+
+        const level = LEVELS[levelIdx];
+        const sequence = parseSequence(level.sequence);
+
+        // 螺旋初始位置（给玩家"未折叠"状态）
+        const n = sequence.length;
+        const radius = 1.5;
+        for (let i = 0; i < n; i++) {
+            const type = sequence[i];
+            const color = AA_COLORS[type] || 0x00d4aa;
+            const atomRadius = AA_RADIUS[type] || 0.85;
+
+            const geo = new THREE.SphereGeometry(atomRadius, 24, 24);
+            const mat = new THREE.MeshPhongMaterial({
+                color: color,
+                emissive: color,
+                emissiveIntensity: 0.15,
+                shininess: 60,
+                specular: 0xffffff
+            });
+            const atom = new THREE.Mesh(geo, mat);
+
+            // 螺旋展开
+            const angle = (i / n) * Math.PI * 2.5;
+            const y = (i - n / 2) * 1.4;
+            const x = Math.cos(angle) * radius;
+            const z = Math.sin(angle) * radius;
+            atom.position.set(x, y, z);
+
+            atom.userData = {
+                index: i,
+                type: type,
+                originalPos: atom.position.clone(),
+                targetPos: atom.position.clone(),
+                velocity: new THREE.Vector3()
+            };
+            protein.add(atom);
+            atoms.push(atom);
+        }
+
+        // 连接线
+        const bondMat = new THREE.LineBasicMaterial({ color: 0x00d4aa, opacity: 0.55, transparent: true });
+        for (let i = 0; i < atoms.length - 1; i++) {
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
+            const line = new THREE.LineSegments(geo, bondMat);
+            protein.add(line);
+            bonds.push(line);
+        }
+
+        scene.add(protein);
+        updateBondGeometry();
+
+        // 更新 UI
+        document.getElementById('seqLen').textContent = n;
+        document.getElementById('currentLevel').textContent = level.name + ' · ' + level.fullName;
+        targetScore = level.target;
+        document.getElementById('targetScore').textContent = targetScore;
+        const best = parseInt(localStorage.getItem(`best_fold_${level.id}`) || '0');
+        document.getElementById('bestScore').textContent = best;
+
+        // 知识提示
+        document.getElementById('knowledgeText').innerHTML = level.knowledge;
+
+        // 计算初始分数
+        updateScore();
+    }
+
+    function updateBondGeometry() {
+        for (let i = 0; i < bonds.length; i++) {
+            const a = atoms[i].position;
+            const b = atoms[i + 1].position;
+            const positions = bonds[i].geometry.attributes.position.array;
+            positions[0] = a.x; positions[1] = a.y; positions[2] = a.z;
+            positions[3] = b.x; positions[4] = b.y; positions[5] = b.z;
+            bonds[i].geometry.attributes.position.needsUpdate = true;
+        }
+    }
+
+    /* ======================= 评分（简化能量函数） ======================= */
+    function calcEnergy() {
+        let hydroScore = 0;   // 疏水聚集（+分）
+        let chargeScore = 0;  // 电荷相互作用（+分）
+        let bondPenalty = 0;  // 键长张力（-分）
+        let clashPenalty = 0; // 空间位阻（-分）
+
+        const idealBond = 1.6;   // 理想相邻距离
+        const minDist = 1.1;     // 原子最小允许距离
+        const hydroContact = 2.8; // 疏水相互作用范围
+        const chargeContact = 3.0; // 电荷作用范围
+
+        // 相邻键长
+        for (let i = 0; i < atoms.length - 1; i++) {
+            const d = atoms[i].position.distanceTo(atoms[i + 1].position);
+            const dev = Math.abs(d - idealBond);
+            if (dev > 1.2) bondPenalty += dev * 4;
+            else if (dev > 0.5) bondPenalty += dev * 2;
+        }
+
+        // 非相邻对
+        for (let i = 0; i < atoms.length; i++) {
+            for (let j = i + 1; j < atoms.length; j++) {
+                if (Math.abs(i - j) === 1) continue; // 已在键长中考虑
+                const d = atoms[i].position.distanceTo(atoms[j].position);
+
+                // 空间位阻
+                if (d < minDist) {
+                    clashPenalty += (minDist - d) * 35;
+                }
+
+                const ti = atoms[i].userData.type;
+                const tj = atoms[j].userData.type;
+
+                // 疏水-疏水 接触
+                if (ti === 'H' && tj === 'H' && d < hydroContact) {
+                    hydroScore += 14 * (1 - d / hydroContact);
+                }
+                // 疏水-亲水 分离（H 远离 P 加分）
+                else if ((ti === 'H' && tj === 'P') || (ti === 'P' && tj === 'H')) {
+                    if (d > 3.5) hydroScore += 2;
+                }
+
+                // 电荷配对：+ 和 - 靠近加分
+                if ((ti === '+' && tj === '-') || (ti === '-' && tj === '+')) {
+                    if (d < chargeContact) {
+                        chargeScore += 20 * (1 - d / chargeContact);
+                    }
+                }
+                // 同电荷排斥：+ 和 + 或 - 和 - 靠近扣分
+                if ((ti === '+' && tj === '+') || (ti === '-' && tj === '-')) {
+                    if (d < 2.5) {
+                        chargeScore -= 15 * (1 - d / 2.5);
+                    }
+                }
+            }
+        }
+
+        // 紧凑度：整体 gyration 半径小（紧凑）加分
+        const center = new THREE.Vector3();
+        atoms.forEach(a => center.add(a.position));
+        center.divideScalar(atoms.length);
+        let avgR = 0;
+        atoms.forEach(a => avgR += a.position.distanceTo(center));
+        avgR /= atoms.length;
+        const compactBonus = Math.max(0, 30 - avgR * 4);
+
+        return {
+            hydro: Math.round(hydroScore),
+            charge: Math.round(chargeScore),
+            bond: Math.round(bondPenalty),
+            clash: Math.round(clashPenalty),
+            compact: Math.round(compactBonus)
+        };
+    }
+
+    function updateScore() {
+        energy = calcEnergy();
+        score = energy.hydro + energy.charge + energy.compact - energy.bond - energy.clash;
+        score = Math.max(0, Math.round(score));
+
+        document.getElementById('score').textContent = score;
+        document.getElementById('energyHydro').textContent = energy.hydro;
+        document.getElementById('energyBond').textContent = -energy.bond;
+        document.getElementById('energyClash').textContent = -energy.clash;
+        document.getElementById('progressFill').style.width = Math.min(100, (score / targetScore) * 100) + '%';
+
+        // 通关检测
+        if (score >= targetScore) {
+            const level = LEVELS[currentLevelIdx];
+            const key = `cleared_fold_${level.id}`;
+            if (!localStorage.getItem(key + '_shown')) {
+                localStorage.setItem(key + '_shown', '1');
+                saveProgress();
+                showSuccess();
             }
         }
     }
 
-    // ============ 鼠标/触摸事件 ============
-    function onMouseDown(event) {
-        const mouse = getMousePosition(event);
-        const intersects = getIntersects(mouse);
+    /* ======================= 自动摇一摇（蒙特卡洛优化） ======================= */
+    function shakeProtein() {
+        // 让蛋白质随机抖动，帮助玩家跳出局部最优
+        for (const atom of atoms) {
+            atom.position.x += (Math.random() - 0.5) * 2.0;
+            atom.position.y += (Math.random() - 0.5) * 2.0;
+            atom.position.z += (Math.random() - 0.5) * 2.0;
+        }
+        updateBondGeometry();
+        updateScore();
+    }
 
-        if (intersects.length > 0) {
-            selectedAtom = intersects[0].object;
-            isDragging = true;
-            previousMousePosition = { x: event.clientX, y: event.clientY };
+    /* ======================= 鼠标/触摸事件 ======================= */
+    function raycastAtoms(clientX, clientY) {
+        const rect = renderer.domElement.getBoundingClientRect();
+        const mouse = new THREE.Vector2(
+            ((clientX - rect.left) / rect.width) * 2 - 1,
+            -((clientY - rect.top) / rect.height) * 2 + 1
+        );
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, camera);
+        return raycaster.intersectObjects(atoms);
+    }
+
+    function onMouseDown(event) {
+        previousMouse = { x: event.clientX, y: event.clientY };
+        const hits = raycastAtoms(event.clientX, event.clientY);
+        if (hits.length > 0) {
+            selectedAtom = hits[0].object;
+            isAtomDrag = true;
+            document.getElementById('selectedIndicator').classList.add('active');
+            // 高亮选中原子
+            atoms.forEach(a => a.material.emissiveIntensity = 0.15);
+            selectedAtom.material.emissiveIntensity = 0.8;
         } else {
             isDragging = true;
-            previousMousePosition = { x: event.clientX, y: event.clientY };
+            if (selectedAtom) {
+                selectedAtom.material.emissiveIntensity = 0.15;
+                selectedAtom = null;
+                document.getElementById('selectedIndicator').classList.remove('active');
+            }
         }
     }
 
     function onMouseMove(event) {
-        if (isDragging) {
-            const deltaX = event.clientX - previousMousePosition.x;
-            const deltaY = event.clientY - previousMousePosition.y;
+        const dx = event.clientX - previousMouse.x;
+        const dy = event.clientY - previousMouse.y;
 
-            if (selectedAtom) {
-                // 拖拽原子
-                selectedAtom.position.x += deltaX * 0.05;
-                selectedAtom.position.y -= deltaY * 0.05;
-            } else {
-                // 旋转视角
-                protein.rotation.y += deltaX * 0.01;
-                protein.rotation.x += deltaY * 0.01;
-            }
-
-            previousMousePosition = { x: event.clientX, y: event.clientY };
+        if (isAtomDrag && selectedAtom) {
+            // 平移原子（沿相机前向平面）
+            const right = new THREE.Vector3();
+            const up = new THREE.Vector3(0, 1, 0);
+            camera.matrixWorld.extractBasis(right, up, new THREE.Vector3());
+            const scale = 0.025;
+            selectedAtom.position.addScaledVector(right, dx * scale);
+            selectedAtom.position.y -= dy * scale;
+            updateBondGeometry();
             updateScore();
+            previousMouse = { x: event.clientX, y: event.clientY };
+        } else if (isDragging) {
+            protein.rotation.y += dx * 0.008;
+            protein.rotation.x += dy * 0.008;
+            protein.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, protein.rotation.x));
+            previousMouse = { x: event.clientX, y: event.clientY };
         }
     }
 
     function onMouseUp() {
         isDragging = false;
-        selectedAtom = null;
+        isAtomDrag = false;
     }
 
     function onMouseWheel(event) {
-        camera.position.z += event.deltaY * 0.05;
-        camera.position.z = Math.max(10, Math.min(50, camera.position.z));
+        camera.position.z += event.deltaY * 0.02;
+        camera.position.z = Math.max(6, Math.min(40, camera.position.z));
     }
 
     function onTouchStart(event) {
         event.preventDefault();
         if (event.touches.length === 1) {
-            const touch = event.touches[0];
-            onMouseDown({ clientX: touch.clientX, clientY: touch.clientY });
+            const t = event.touches[0];
+            onMouseDown({ clientX: t.clientX, clientY: t.clientY });
         }
     }
-
     function onTouchMove(event) {
         event.preventDefault();
         if (event.touches.length === 1) {
-            const touch = event.touches[0];
-            onMouseMove({ clientX: touch.clientX, clientY: touch.clientY });
+            const t = event.touches[0];
+            onMouseMove({ clientX: t.clientX, clientY: t.clientY });
         }
     }
+    function onTouchEnd() { onMouseUp(); }
 
-    function onTouchEnd() {
-        onMouseUp();
-    }
-
-    function getMousePosition(event) {
-        const rect = renderer.domElement.getBoundingClientRect();
-        return {
-            x: ((event.clientX - rect.left) / rect.width) * 2 - 1,
-            y: -((event.clientY - rect.top) / rect.height) * 2 + 1
-        };
-    }
-
-    function getIntersects(mouse) {
-        const raycaster = new THREE.Raycaster();
-        raycaster.setFromCamera(mouse, camera);
-        return raycaster.intersectObjects(protein.children);
+    function onKeyDown(e) {
+        if (e.code === 'Space') { e.preventDefault(); shakeProtein(); }
     }
 
     function onWindowResize() {
@@ -637,168 +1135,185 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
-    // ============ 评分系统 ============
-    function updateScore() {
-        if (!protein) return;
-
-        let totalDistance = 0;
-        let atomCount = 0;
-
-        for (let i = 0; i < protein.children.length; i++) {
-            const atom = protein.children[i];
-            if (atom instanceof THREE.Mesh) {
-                const orig = atom.userData.originalPos;
-                const dist = atom.position.distanceTo(orig);
-                totalDistance += dist;
-                atomCount++;
-            }
-        }
-
-        // 计算折叠紧凑度分数
-        let compactness = 0;
-        for (let i = 0; i < protein.children.length - 1; i++) {
-            const atom1 = protein.children[i];
-            const atom2 = protein.children[i + 1];
-            if (atom1 instanceof THREE.Mesh && atom2 instanceof THREE.Mesh) {
-                compactness += 10 - atom1.position.distanceTo(atom2.position);
-            }
-        }
-
-        // 基础分 - 位移分 + 紧凑度分
-        score = Math.max(0, Math.round(50 - totalDistance * 2 + compactness * 5));
-        document.getElementById('score').textContent = score;
-
-        // 检查通关
-        const level = LEVELS.find(l => l.id === currentLevel);
-        if (level && score >= level.target) {
-            setTimeout(() => alert('🎉 恭喜通关！'), 100);
-            saveProgress(currentLevel);
-        }
-    }
-
-    // ============ 游戏控制 ============
-    function showMenu() {
-        document.getElementById('menuOverlay').classList.remove('hidden');
-    }
-
-    function hideMenu() {
-        document.getElementById('menuOverlay').classList.add('hidden');
-    }
-
-    function showLevelSelect() {
-        hideMenu();
-        const grid = document.getElementById('levelSelectGrid');
-        grid.innerHTML = '';
-
-        LEVELS.forEach(level => {
-            const btn = document.createElement('button');
-            btn.className = 'level-btn' + (level.unlocked ? '' : ' locked');
-            btn.textContent = level.name;
-            btn.disabled = !level.unlocked;
-            btn.onclick = () => level.unlocked && startGame(level.id);
-            grid.appendChild(btn);
+    /* ======================= 动画循环 ======================= */
+    function animate() {
+        requestAnimationFrame(animate);
+        // 背景粒子缓慢旋转
+        scene.children.forEach(c => {
+            if (c.userData.isBackdrop) c.rotation.y += 0.0004;
         });
-
-        document.getElementById('levelSelectOverlay').classList.remove('hidden');
+        // 蛋白质轻微呼吸
+        if (protein) {
+            protein.position.y = Math.sin(Date.now() * 0.0008) * 0.2;
+        }
+        renderer.render(scene, camera);
     }
 
-    function hideLevelSelect() {
-        document.getElementById('levelSelectOverlay').classList.add('hidden');
-    }
+    /* ======================= 菜单 / 关卡 / 引导 ======================= */
+    function showMenu() { document.getElementById('menuOverlay').style.display = 'flex'; }
+    function hideMenu() { document.getElementById('menuOverlay').style.display = 'none'; }
 
     function startGame(levelId) {
-        currentLevel = levelId || 'tutorial';
-        const level = LEVELS.find(l => l.id === currentLevel);
-
-        document.getElementById('currentLevel').textContent = level?.name || currentLevel;
-        document.getElementById('targetScore').textContent = level?.target || 100;
-        document.getElementById('bestScore').textContent = localStorage.getItem(`best_${currentLevel}`) || 0;
-
+        const idx = levelId == null ? 0 : LEVELS.findIndex(l => l.id === levelId);
+        currentLevelIdx = idx >= 0 ? idx : 0;
         hideMenu();
         hideLevelSelect();
+        hideSuccess();
+        createProtein(currentLevelIdx);
 
-        // 重置蛋白质
-        createProtein();
-
-        // 显示引导
-        if (currentLevel === 'tutorial' && !localStorage.getItem('fold_guide_done')) {
+        // 首次启动：显示引导
+        if (!localStorage.getItem('fold_guide_done')) {
             showGuide();
         }
     }
 
     function resetProtein() {
-        createProtein();
-        score = 0;
-        document.getElementById('score').textContent = '0';
+        createProtein(currentLevelIdx);
     }
 
-    // ============ 新手引导 ============
+    function showLevelSelect() {
+        hideMenu();
+        const grid = document.getElementById('levelGrid');
+        grid.innerHTML = '';
+        LEVELS.forEach((level, i) => {
+            const bestKey = `best_fold_${level.id}`;
+            const best = parseInt(localStorage.getItem(bestKey) || '0');
+            const cleared = localStorage.getItem(`cleared_fold_${level.id}_shown`);
+            const card = document.createElement('div');
+            const isLocked = !level.unlocked && i > 0 && !localStorage.getItem(`unlock_fold_${level.id}`);
+            card.className = 'level-card' + (isLocked ? ' locked' : '') + (cleared ? ' completed' : '');
+            card.innerHTML = `
+                <div class="level-num">${i + 1}</div>
+                <div class="level-name">${level.name}</div>
+                <div class="level-target">目标 ${level.target} 分</div>
+                ${best > 0 ? `<div class="level-best">最佳: ${best}</div>` : ''}
+            `;
+            if (!isLocked) {
+                card.onclick = () => startGame(level.id);
+            }
+            grid.appendChild(card);
+        });
+        document.getElementById('levelSelectOverlay').classList.add('active');
+    }
+
+    function hideLevelSelect() {
+        document.getElementById('levelSelectOverlay').classList.remove('active');
+    }
+
+    function showSuccess() {
+        const level = LEVELS[currentLevelIdx];
+        document.getElementById('finalScore').textContent = score;
+        document.getElementById('finalTarget').textContent = targetScore;
+        document.getElementById('successDetail').textContent =
+            `关卡 ${level.name} 已通关 · 氨基酸序列: ${level.sequence}`;
+        document.getElementById('learningText').innerHTML = level.learning;
+        document.getElementById('successOverlay').classList.add('active');
+    }
+
+    function hideSuccess() {
+        document.getElementById('successOverlay').classList.remove('active');
+    }
+
+    function nextLevel() {
+        hideSuccess();
+        if (currentLevelIdx + 1 < LEVELS.length) {
+            currentLevelIdx++;
+            createProtein(currentLevelIdx);
+        } else {
+            alert('🎉 恭喜你完成了所有关卡！你已成为蛋白质折叠大师！');
+            showLevelSelect();
+        }
+    }
+
+    /* ======================= 存档 ======================= */
+    function saveProgress() {
+        const level = LEVELS[currentLevelIdx];
+        const bestKey = `best_fold_${level.id}`;
+        const prevBest = parseInt(localStorage.getItem(bestKey) || '0');
+        if (score > prevBest) localStorage.setItem(bestKey, score);
+
+        // 解锁下一关
+        if (currentLevelIdx + 1 < LEVELS.length) {
+            const nxt = LEVELS[currentLevelIdx + 1];
+            localStorage.setItem(`unlock_fold_${nxt.id}`, '1');
+        }
+
+        // 同步到统一 stats
+        const allStats = JSON.parse(localStorage.getItem('scienceGameStats') || '{}');
+        if (!allStats['fold-protein']) allStats['fold-protein'] = {
+            playTime: 0, levelCompleted: 0, totalScore: 0, achievements: [], highestLevel: 0
+        };
+        allStats['fold-protein'].totalScore += score;
+        allStats['fold-protein'].levelCompleted = Math.max(
+            allStats['fold-protein'].levelCompleted || 0,
+            currentLevelIdx + 1
+        );
+        allStats['fold-protein'].highestLevel = Math.max(
+            allStats['fold-protein'].highestLevel || 0,
+            currentLevelIdx + 1
+        );
+        if (score >= targetScore && !allStats['fold-protein'].achievements.includes('clear_' + level.id)) {
+            allStats['fold-protein'].achievements.push('clear_' + level.id);
+        }
+        if (currentLevelIdx + 1 >= LEVELS.length && !allStats['fold-protein'].achievements.includes('fold_master')) {
+            allStats['fold-protein'].achievements.push('fold_master');
+        }
+        localStorage.setItem('scienceGameStats', JSON.stringify(allStats));
+    }
+
+    /* ======================= 新手引导 ======================= */
+    const GUIDE_STEPS = [
+        {
+            icon: '👋',
+            title: '欢迎来到蛋白质折叠世界',
+            text: '蛋白质是由氨基酸组成的长链分子。每一种蛋白质都必须折叠成<span class="em">特定的三维形状</span>才能发挥功能。错误折叠的蛋白质与阿尔茨海默症、帕金森症等疾病相关。'
+        },
+        {
+            icon: '🖱️',
+            title: '基本操作',
+            text: '• 拖拽空白区域 → <span class="em">旋转视角</span><br>• 滚动滚轮 → <span class="em">缩放</span><br>• 点击原子 → <span class="em">选中</span>（高亮）<br>• 拖拽已选原子 → <span class="em">折叠蛋白质</span><br>• 按 <span class="em">空格键</span> → 随机摇一摇，帮助跳出局部最优'
+        },
+        {
+            icon: '⚛️',
+            title: '氨基酸类型',
+            text: '<span style="color:#ff8a65;font-weight:700;">● 疏水 (H)</span>：想"躲"在内部<br><span style="color:#4dd0e1;font-weight:700;">● 亲水 (P)</span>：想"露"在表面<br><span style="color:#ba68c8;font-weight:700;">● 正电荷 (+)</span> / <span style="color:#ffd54f;font-weight:700;">● 负电荷 (-)</span>：相互吸引形成盐键'
+        },
+        {
+            icon: '🎯',
+            title: '游戏目标',
+            text: '通过拖动原子让蛋白质折叠到<span class="em">能量最低</span>的稳定状态：疏水核、电荷配对、避免原子"打架"。得分达到目标值即通关！'
+        },
+        {
+            icon: '🧪',
+            title: '开始游戏',
+            text: '准备好了吗？点击"开始"，进入蛋白质折叠的微观世界！'
+        }
+    ];
+
     function showGuide() {
         guideStep = 0;
         updateGuide();
-        document.getElementById('guideOverlay').classList.remove('hidden');
+        document.getElementById('guideOverlay').classList.add('active');
     }
 
     function updateGuide() {
         const step = GUIDE_STEPS[guideStep];
         document.getElementById('guideIcon').textContent = step.icon;
         document.getElementById('guideTitle').textContent = step.title;
-        document.getElementById('guideText').textContent = step.text;
+        document.getElementById('guideText').innerHTML = step.text;
     }
 
     function nextGuide() {
         guideStep++;
         if (guideStep >= GUIDE_STEPS.length) {
-            document.getElementById('guideOverlay').classList.add('hidden');
-            localStorage.setItem('fold_guide_done', 'true');
+            document.getElementById('guideOverlay').classList.remove('active');
+            localStorage.setItem('fold_guide_done', '1');
         } else {
             updateGuide();
         }
     }
 
-    // ============ 数据存储 ============
-    function saveProgress(levelId) {
-        const level = LEVELS.find(l => l.id === levelId);
-        if (!level) return;
-
-        // 保存最高分
-        const bestKey = `best_${levelId}`;
-        const currentBest = parseInt(localStorage.getItem(bestKey) || '0');
-        if (score > currentBest) {
-            localStorage.setItem(bestKey, score);
-        }
-
-        // 解锁下一关
-        const levelIndex = LEVELS.findIndex(l => l.id === levelId);
-        if (levelIndex < LEVELS.length - 1) {
-            LEVELS[levelIndex + 1].unlocked = true;
-        }
-
-        // 保存游戏统计
-        const allStats = JSON.parse(localStorage.getItem('scienceGameStats') || '{}');
-        if (!allStats['fold-protein']) allStats['fold-protein'] = { playTime: 0, levelCompleted: 0, totalScore: 0, achievements: [] };
-        allStats['fold-protein'].totalScore += score;
-        allStats['fold-protein'].levelCompleted = Math.max(allStats['fold-protein'].levelCompleted || 0, levelIndex + 1);
-        localStorage.setItem('scienceGameStats', JSON.stringify(allStats));
-    }
-
-    // ============ 动画循环 ============
-    function animate() {
-        requestAnimationFrame(animate);
-
-        // 蛋白质轻微浮动
-        if (protein) {
-            protein.children.forEach((child, i) => {
-                if (child instanceof THREE.Mesh) {
-                    child.position.y += Math.sin(Date.now() * 0.001 + i) * 0.005;
-                }
-            });
-        }
-
-        renderer.render(scene, camera);
-    }
-
-    // ============ 初始化 ============
+    /* ======================= 启动 ======================= */
     window.onload = init3D;
     </script>
 </body>
