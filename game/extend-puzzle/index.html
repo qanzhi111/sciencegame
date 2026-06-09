@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>逻辑几何解谜</title>
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        :root {
+            --primary: #1a2a4a;
+            --secondary: #2d3436;
+            --accent: #00d4aa;
+            --text: #ffffff;
+            --text-muted: #a0a0a0;
+            --warning: #fbbf24;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            min-height: 100vh;
+            color: var(--text);
+            overflow: hidden;
+        }
+
+        /* 3D 画布 */
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        /* 顶部面板 */
+        .top-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: rgba(26, 42, 74, 0.95);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 100;
+            border-bottom: 1px solid rgba(0, 212, 170, 0.2);
+        }
+
+        .game-title {
+            font-size: 1.1rem;
+            color: var(--accent);
+        }
+
+        .level-badge {
+            padding: 6px 16px;
+            background: rgba(0, 212, 170, 0.15);
+            border: 1px solid rgba(0, 212, 170, 0.3);
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: var(--accent);
+        }
+
+        /* 游戏区域 */
+        .game-area {
+            position: fixed;
+            top: 60px;
+            left: 0;
+            right: 0;
+            bottom: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        /* 底部控制栏 */
+        .bottom-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            background: rgba(26, 42, 74, 0.95);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            padding: 0 20px;
+            z-index: 100;
+            border-top: 1px solid rgba(0, 212, 170, 0.2);
+        }
+
+        .action-btn {
+            padding: 12px 28px;
+            background: transparent;
+            border: 1px solid rgba(0, 212, 170, 0.5);
+            border-radius: 8px;
+            color: var(--accent);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .action-btn:hover {
+            background: var(--accent);
+            color: var(--primary);
+        }
+
+        .action-btn.primary {
+            background: var(--accent);
+            color: var(--primary);
+        }
+
+        .action-btn.primary:hover {
+            transform: scale(1.05);
+        }
+
+        /* 信息面板 */
+        .info-panel {
+            position: fixed;
+            right: 20px;
+            top: 80px;
+            width: 240px;
+            background: rgba(26, 42, 74, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 212, 170, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            z-index: 100;
+        }
+
+        .info-title {
+            font-size: 0.85rem;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .info-value {
+            color: var(--text);
+            font-size: 0.9rem;
+        }
+
+        /* 谜题提示 */
+        .puzzle-hint {
+            position: fixed;
+            left: 20px;
+            top: 80px;
+            max-width: 280px;
+            background: rgba(26, 42, 74, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 212, 170, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            z-index: 100;
+        }
+
+        .hint-title {
+            font-size: 0.85rem;
+            color: var(--warning);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .hint-text {
+            font-size: 0.95rem;
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        /* 开始菜单 */
+        .menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(26, 42, 74, 0.98);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        .menu-content {
+            text-align: center;
+            max-width: 500px;
+            padding: 40px;
+        }
+
+        .menu-content h1 {
+            font-size: 2.2rem;
+            font-weight: 300;
+            color: var(--accent);
+            margin-bottom: 16px;
+            letter-spacing: 4px;
+        }
+
+        .menu-content p {
+            color: var(--text-muted);
+            margin-bottom: 30px;
+            line-height: 1.8;
+        }
+
+        .menu-btn {
+            display: block;
+            width: 100%;
+            padding: 14px 32px;
+            margin-bottom: 14px;
+            background: transparent;
+            border: 1px solid var(--accent);
+            border-radius: 8px;
+            color: var(--accent);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .menu-btn:hover {
+            background: var(--accent);
+            color: var(--primary);
+        }
+
+        .menu-btn.secondary {
+            border-color: rgba(255, 255, 255, 0.2);
+            color: var(--text-muted);
+        }
+
+        .menu-btn.secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text);
+        }
+
+        /* 隐藏 */
+        .hidden {
+            display: none !important;
+        }
+
+        /* 成功/失败提示 */
+        .notification {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 16px 32px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            z-index: 300;
+            animation: slideDown 0.3s ease;
+        }
+
+        .notification.success {
+            background: var(--accent);
+            color: var(--primary);
+        }
+
+        .notification.error {
+            background: #ef4444;
+            color: white;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+
+    <!-- 顶部栏 -->
+    <div class="top-bar">
+        <span class="game-title">🧩 逻辑几何解谜</span>
+        <span class="level-badge" id="levelBadge">逻辑-1</span>
+    </div>
+
+    <!-- 左侧提示 -->
+    <div class="puzzle-hint" id="puzzleHint">
+        <div class="hint-title">💡 提示</div>
+        <div class="hint-text" id="hintText">
+            观察图形的规律，找出下一个应该出现的形状。
+        </div>
+    </div>
+
+    <!-- 右侧信息 -->
+    <div class="info-panel">
+        <div class="info-title">游戏状态</div>
+        <div class="info-item">
+            <span class="info-label">关卡</span>
+            <span class="info-value" id="levelNum">1</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">步数</span>
+            <span class="info-value" id="steps">0</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">正确</span>
+            <span class="info-value" id="correct">0</span>
+        </div>
+    </div>
+
+    <!-- 游戏区域 -->
+    <div class="game-area" id="gameArea">
+        <!-- 动态内容 -->
+    </div>
+
+    <!-- 底部控制 -->
+    <div class="bottom-bar">
+        <button class="action-btn" onclick="showMenu()">菜单</button>
+        <button class="action-btn" onclick="resetPuzzle()">重置</button>
+        <button class="action-btn primary" id="checkBtn" onclick="checkAnswer()">检查答案</button>
+    </div>
+
+    <!-- 开始菜单 -->
+    <div class="menu-overlay" id="menuOverlay">
+        <div class="menu-content">
+            <h1>逻辑几何解谜</h1>
+            <p>
+                参考 nandgame 与 hyperrogue 设计思路<br>
+                挑战数字逻辑与非欧几何关卡<br>
+                锻炼数学思维与空间想象能力
+            </p>
+            <button class="menu-btn" onclick="startGame('logic')">逻辑关卡</button>
+            <button class="menu-btn" onclick="startGame('geometry')">几何关卡</button>
+            <button class="menu-btn secondary" onclick="location.href='../../index.html'">返回首页</button>
+        </div>
+    </div>
+
+    <script>
+    /**
+     * 参考 nandgame (https://github.com/nandgame/nandgame)
+     * 与 hyperrogue (https://github.com/zenorogue/hyperrogue) 设计思路
+     * 仅参考关卡架构与解谜规则，不照搬完整代码
+     */
+
+    // ============ 关卡数据 ============
+    const LOGIC_LEVELS = [
+        {
+            id: 'nand',
+            name: '与非门',
+            hint: '与非门(NAND)是数字电路的基本单元：只有当所有输入为1时输出0，否则输出1。',
+            puzzle: '给定输入A=1, B=0，求NAND(A,B)的值',
+            options: ['0', '1', '不确定'],
+            answer: 1
+        },
+        {
+            id: 'xor',
+            name: '异或门',
+            hint: '异或门(XOR)：输入相同时输出0，不同时输出1。',
+            puzzle: 'A=1, B=1，求XOR(A,B)',
+            options: ['0', '1', '需要更多输入'],
+            answer: 0
+        },
+        {
+            id: 'half-adder',
+            name: '半加器',
+            hint: '半加器有两个输出：和(SUM)与进位(CARRY)。SUM=A⊕B，CARRY=A·B',
+            puzzle: 'A=1, B=1，半加器的和(SUM)是多少？',
+            options: ['0', '1', '10'],
+            answer: 1
+        },
+        {
+            id: 'mux',
+            name: '多路复用器',
+            hint: '多路复用器根据选择信号S的值，选择A或B作为输出。S=0输出A，S=1输出B。',
+            puzzle: 'A=0, B=1, S=1，输出是？',
+            options: ['0', '1', '不确定'],
+            answer: 1
+        },
+        {
+            id: 'demux',
+            name: '分路器',
+            hint: '分路器根据选择信号将输入分配到对应输出。',
+            puzzle: '输入=1, S=0，输出Y0和Y1分别是？',
+            options: ['Y0=1, Y1=0', 'Y0=0, Y1=1', 'Y0=1, Y1=1'],
+            answer: 0
+        }
+    ];
+
+    const GEOMETRY_LEVELS = [
+        {
+            id: 'triangle',
+            name: '三角形',
+            hint: '三角形内角和恒等于180°。',
+            puzzle: '一个三角形两个角分别是60°和70°，第三个角是多少度？',
+            options: ['40°', '50°', '60°'],
+            answer: 1
+        },
+        {
+            id: 'circle',
+            name: '圆与π',
+            hint: '圆的周长公式：C = 2πr，面积公式：A = πr²',
+            puzzle: '半径为3的圆，面积为多少？（π取3.14）',
+            options: ['18.84', '28.26', '9.42'],
+            answer: 1
+        },
+        {
+            id: 'pythagorean',
+            name: '勾股定理',
+            hint: '直角三角形中：a² + b² = c²',
+            puzzle: '直角边a=3, b=4，斜边c等于多少？',
+            options: ['5', '6', '7'],
+            answer: 0
+        },
+        {
+            id: 'sphere',
+            name: '球体',
+            hint: '球体体积公式：V = (4/3)πr³',
+            puzzle: '半径为3的球体，体积为多少？（π取3.14）',
+            options: ['113.04', '84.78', '56.52'],
+            answer: 0
+        },
+        {
+            id: 'fibonacci',
+            name: '斐波那契',
+            hint: '斐波那契数列：1, 1, 2, 3, 5, 8, 13... 每个数是前两个数之和。',
+            puzzle: '斐波那契数列的第8个数是多少？',
+            options: ['18', '21', '34'],
+            answer: 1
+        }
+    ];
+
+    // ============ 游戏状态 ============
+    let currentType = 'logic';
+    let currentLevel = 0;
+    let steps = 0;
+    let correctCount = 0;
+    let selectedOption = null;
+    let answered = false;
+
+    // ============ 初始化 ============
+    let scene, camera, renderer;
+
+    function init3D() {
+        const container = document.getElementById('canvas-container');
+
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a2a4a);
+
+        camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 0, 15);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        container.appendChild(renderer.domElement);
+
+        // 光照
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+
+        const pointLight = new THREE.PointLight(0x00d4aa, 0.8);
+        pointLight.position.set(5, 5, 10);
+        scene.add(pointLight);
+
+        // 创建装饰性几何体
+        createDecorations();
+
+        // 鼠标控制视角
+        let isDragging = false;
+        let prevMouse = { x: 0, y: 0 };
+
+        renderer.domElement.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            prevMouse = { x: e.clientX, y: e.clientY };
+        });
+
+        renderer.domElement.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                const deltaX = e.clientX - prevMouse.x;
+                const deltaY = e.clientY - prevMouse.y;
+                scene.rotation.y += deltaX * 0.005;
+                scene.rotation.x += deltaY * 0.005;
+                prevMouse = { x: e.clientX, y: e.clientY };
+            }
+        });
+
+        renderer.domElement.addEventListener('mouseup', () => isDragging = false);
+
+        window.addEventListener('resize', onWindowResize);
+
+        animate();
+    }
+
+    function createDecorations() {
+        // 浮动的几何体装饰
+        const shapes = [];
+        const geometries = [
+            new THREE.OctahedronGeometry(0.5),
+            new THREE.TetrahedronGeometry(0.4),
+            new THREE.IcosahedronGeometry(0.3)
+        ];
+
+        for (let i = 0; i < 15; i++) {
+            const material = new THREE.MeshPhongMaterial({
+                color: 0x00d4aa,
+                transparent: true,
+                opacity: 0.3
+            });
+            const mesh = new THREE.Mesh(geometries[i % 3], material);
+            mesh.position.set(
+                (Math.random() - 0.5) * 20,
+                (Math.random() - 0.5) * 20,
+                (Math.random() - 0.5) * 10 - 5
+            );
+            mesh.userData = {
+                rotSpeed: (Math.random() - 0.5) * 0.02,
+                floatSpeed: Math.random() * 0.01 + 0.005,
+                floatOffset: Math.random() * Math.PI * 2
+            };
+            scene.add(mesh);
+            shapes.push(mesh);
+        }
+
+        // 动画
+        function animateShapes() {
+            const time = Date.now() * 0.001;
+            shapes.forEach((mesh, i) => {
+                mesh.rotation.x += mesh.userData.rotSpeed;
+                mesh.rotation.y += mesh.userData.rotSpeed * 1.3;
+                mesh.position.y += Math.sin(time * mesh.userData.floatSpeed * 100 + mesh.userData.floatOffset) * 0.002;
+            });
+        }
+
+        // 添加到动画循环
+        const originalAnimate = animate;
+        function animate() {
+            requestAnimationFrame(animate);
+            animateShapes();
+            renderer.render(scene, camera);
+        }
+        animate();
+    }
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    // ============ 游戏逻辑 ============
+    function startGame(type) {
+        currentType = type;
+        currentLevel = 0;
+        steps = 0;
+        correctCount = 0;
+        selectedOption = null;
+        answered = false;
+
+        document.getElementById('menuOverlay').classList.add('hidden');
+        document.getElementById('levelBadge').textContent = type === 'logic' ? '逻辑-1' : '几何-1';
+        document.getElementById('steps').textContent = '0';
+        document.getElementById('correct').textContent = '0';
+
+        renderPuzzle();
+    }
+
+    function renderPuzzle() {
+        const levels = currentType === 'logic' ? LOGIC_LEVELS : GEOMETRY_LEVELS;
+        const level = levels[currentLevel];
+
+        document.getElementById('levelNum').textContent = currentLevel + 1;
+        document.getElementById('hintText').textContent = level.hint;
+
+        const gameArea = document.getElementById('gameArea');
+        gameArea.innerHTML = `
+            <div style="text-align: center; max-width: 500px; padding: 30px;
+                        background: rgba(26, 42, 74, 0.95); border-radius: 16px;
+                        border: 1px solid rgba(0, 212, 170, 0.2);">
+                <div style="font-size: 3rem; margin-bottom: 20px;">${getPuzzleIcon()}</div>
+                <div style="font-size: 1.3rem; line-height: 1.8; margin-bottom: 30px; color: var(--text);">
+                    ${level.puzzle}
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+                    ${level.options.map((opt, i) => `
+                        <button class="option-btn" onclick="selectOption(${i})" id="opt${i}">
+                            ${opt}
+                        </button>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+
+        selectedOption = null;
+        answered = false;
+        document.getElementById('checkBtn').disabled = true;
+    }
+
+    function getPuzzleIcon() {
+        if (currentType === 'logic') {
+            const icons = ['🔌', '⚡', '🔢', '🔀', '📤'];
+            return icons[currentLevel % icons.length];
+        } else {
+            const icons = ['📐', '⭕', '📏', '🔮', '🐚'];
+            return icons[currentLevel % icons.length];
+        }
+    }
+
+    function selectOption(index) {
+        if (answered) return;
+
+        selectedOption = index;
+
+        document.querySelectorAll('.option-btn').forEach((btn, i) => {
+            btn.classList.remove('selected');
+            if (i === index) btn.classList.add('selected');
+        });
+
+        document.getElementById('checkBtn').disabled = false;
+    }
+
+    function checkAnswer() {
+        if (selectedOption === null || answered) return;
+
+        const levels = currentType === 'logic' ? LOGIC_LEVELS : GEOMETRY_LEVELS;
+        const level = levels[currentLevel];
+        const buttons = document.querySelectorAll('.option-btn');
+
+        answered = true;
+        steps++;
+
+        document.getElementById('steps').textContent = steps;
+
+        if (selectedOption === level.answer) {
+            buttons[selectedOption].classList.add('correct');
+            correctCount++;
+            document.getElementById('correct').textContent = correctCount;
+            showNotification('🎉 正确！', 'success');
+        } else {
+            buttons[selectedOption].classList.add('wrong');
+            buttons[level.answer].classList.add('correct');
+            showNotification('❌ 错误，正确答案是：' + level.options[level.answer], 'error');
+        }
+
+        // 保存进度
+        saveProgress();
+
+        // 延迟进入下一关
+        setTimeout(() => {
+            currentLevel++;
+            if (currentLevel >= levels.length) {
+                showCompletion();
+            } else {
+                document.getElementById('levelBadge').textContent =
+                    (currentType === 'logic' ? '逻辑' : '几何') + '-' + (currentLevel + 1);
+                renderPuzzle();
+            }
+        }, 1500);
+    }
+
+    function saveProgress() {
+        const allStats = JSON.parse(localStorage.getItem('scienceGameStats') || '{}');
+        if (!allStats['extend-puzzle']) allStats['extend-puzzle'] = { playTime: 0, levelCompleted: 0, totalScore: 0, achievements: [] };
+        allStats['extend-puzzle'].levelCompleted = Math.max(allStats['extend-puzzle'].levelCompleted || 0, currentLevel + 1);
+        allStats['extend-puzzle'].totalScore += correctCount * 10;
+        localStorage.setItem('scienceGameStats', JSON.stringify(allStats));
+    }
+
+    function showNotification(message, type) {
+        const existing = document.querySelector('.notification');
+        if (existing) existing.remove();
+
+        const notif = document.createElement('div');
+        notif.className = `notification ${type}`;
+        notif.textContent = message;
+        document.body.appendChild(notif);
+
+        setTimeout(() => notif.remove(), 2500);
+    }
+
+    function showCompletion() {
+        const total = currentType === 'logic' ? LOGIC_LEVELS.length : GEOMETRY_LEVELS.length;
+        document.getElementById('gameArea').innerHTML = `
+            <div style="text-align: center; padding: 40px;
+                        background: rgba(26, 42, 74, 0.95); border-radius: 16px;
+                        border: 1px solid rgba(0, 212, 170, 0.3);">
+                <div style="font-size: 80px; margin-bottom: 20px;">🏆</div>
+                <div style="font-size: 2rem; color: var(--accent); margin-bottom: 16px;">
+                    恭喜通关！
+                </div>
+                <div style="color: var(--text-muted); margin-bottom: 30px;">
+                    完成 ${total} 道 ${currentType === 'logic' ? '逻辑' : '几何'} 谜题<br>
+                    正确率：${correctCount}/${steps}
+                </div>
+                <button class="action-btn primary" onclick="startGame('${currentType}')">
+                    再玩一次
+                </button>
+            </div>
+        `;
+    }
+
+    function resetPuzzle() {
+        renderPuzzle();
+    }
+
+    function showMenu() {
+        document.getElementById('menuOverlay').classList.remove('hidden');
+    }
+
+    // ============ 初始化 ============
+    window.onload = init3D;
+    </script>
+</body>
+</html>

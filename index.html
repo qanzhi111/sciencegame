@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>科学游戏中心</title>
+    <style>
+        :root {
+            --primary: #1a2a4a;
+            --secondary: #2d3436;
+            --accent: #00d4aa;
+            --text: #ffffff;
+            --text-muted: #a0a0a0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            min-height: 100vh;
+            color: var(--text);
+            overflow-x: hidden;
+        }
+
+        /* 动态粒子背景 */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--accent);
+            border-radius: 50%;
+            opacity: 0.6;
+            animation: float 15s infinite ease-in-out;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) translateX(0); opacity: 0.6; }
+            25% { transform: translateY(-100px) translateX(50px); opacity: 0.3; }
+            50% { transform: translateY(-50px) translateX(-30px); opacity: 0.8; }
+            75% { transform: translateY(-150px) translateX(20px); opacity: 0.4; }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 300;
+            letter-spacing: 8px;
+            margin-bottom: 16px;
+            background: linear-gradient(90deg, var(--accent), #00ffcc, var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            letter-spacing: 2px;
+        }
+
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 30px;
+            margin-bottom: 60px;
+        }
+
+        .game-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 30px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .game-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .game-card:hover {
+            transform: translateY(-8px);
+            border-color: var(--accent);
+            box-shadow: 0 20px 40px rgba(0, 212, 170, 0.15);
+        }
+
+        .game-card:hover::before {
+            opacity: 1;
+        }
+
+        .game-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, var(--accent), #00a080);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+
+        .game-card h3 {
+            font-size: 1.4rem;
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+
+        .game-card p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .game-tag {
+            display: inline-block;
+            padding: 4px 12px;
+            background: rgba(0, 212, 170, 0.15);
+            border: 1px solid rgba(0, 212, 170, 0.3);
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: var(--accent);
+        }
+
+        .game-tag.priority-high {
+            background: rgba(255, 100, 100, 0.15);
+            border-color: rgba(255, 100, 100, 0.3);
+            color: #ff6b6b;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stats-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: transparent;
+            border: 1px solid var(--accent);
+            border-radius: 8px;
+            color: var(--accent);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .stats-btn:hover {
+            background: var(--accent);
+            color: var(--primary);
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            h1 { font-size: 2rem; letter-spacing: 4px; }
+            .game-grid { grid-template-columns: 1fr; }
+            .container { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- 粒子背景 -->
+    <div class="particles" id="particles"></div>
+
+    <div class="container">
+        <header>
+            <h1>科学游戏中心</h1>
+            <p class="subtitle">探索科学 · 体验未知 · 开启智慧</p>
+        </header>
+
+        <div class="game-grid">
+            <!-- 蛋白质折叠解谜 -->
+            <div class="game-card" onclick="location.href='game/fold-protein/index.html'">
+                <div class="game-icon">🧬</div>
+                <h3>蛋白质折叠解谜</h3>
+                <p>基于 foldit 开源项目改造。体验蛋白质分子结构的折叠过程，通过拖拽操作解开谜题，探索生命科学的奥秘。</p>
+                <span class="game-tag priority-high">P0 主力上线</span>
+            </div>
+
+            <!-- 相对论沉浸可视化 -->
+            <div class="game-card" onclick="location.href='game/relativity-view/index.html'">
+                <div class="game-icon">🚀</div>
+                <h3>相对论沉浸可视化</h3>
+                <p>基于 MIT OpenRelativity 改造。以第一人称视角体验接近光速运动时的视觉畸变效应，直观理解相对论。</p>
+                <span class="game-tag priority-high">P0 同步上线</span>
+            </div>
+
+            <!-- 极速轻量 Demo -->
+            <div class="game-card" onclick="location.href='game/quick-demo/index.html'">
+                <div class="game-icon">⚡</div>
+                <h3>极速轻量解谜</h3>
+                <p>基于 OpenGame 框架。快速生成生物、物理类拖拽拼图与选择题型解谜关卡，适合试玩体验。</p>
+                <span class="game-tag">P1 补充玩法</span>
+            </div>
+
+            <!-- 逻辑几何解谜 -->
+            <div class="game-card" onclick="location.href='game/extend-puzzle/index.html'">
+                <div class="game-icon">🧩</div>
+                <h3>逻辑几何解谜</h3>
+                <p>参考 nandgame 与 hyperrogue 设计。挑战数字逻辑与非欧几何关卡，锻炼数学思维与空间想象。</p>
+                <span class="game-tag">P2 可选拓展</span>
+            </div>
+        </div>
+
+        <footer>
+            <button class="stats-btn" onclick="location.href='stats.html'">
+                📊 查看我的游戏数据
+            </button>
+        </footer>
+    </div>
+
+    <script>
+        // 生成粒子背景
+        const particlesContainer = document.getElementById('particles');
+        for (let i = 0; i < 30; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.top = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 15 + 's';
+            particle.style.animationDuration = (10 + Math.random() * 10) + 's';
+            particlesContainer.appendChild(particle);
+        }
+
+        // 加载游戏数据
+        function loadGameStats() {
+            const stats = JSON.parse(localStorage.getItem('scienceGameStats') || '{}');
+            return stats;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D 数据可视化组件</title>
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        :root {
+            --primary: #1a2a4a;
+            --secondary: #2d3436;
+            --accent: #00d4aa;
+            --text: #ffffff;
+            --text-muted: #a0a0a0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            min-height: 100vh;
+            color: var(--text);
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        header h1 {
+            font-size: 2rem;
+            font-weight: 300;
+            color: var(--accent);
+            letter-spacing: 4px;
+            margin-bottom: 12px;
+        }
+
+        header p {
+            color: var(--text-muted);
+        }
+
+        /* 演示区域 */
+        .demo-section {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 212, 170, 0.2);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .demo-title {
+            font-size: 1.1rem;
+            color: var(--accent);
+            margin-bottom: 20px;
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 400px;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        /* 控制面板 */
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .control-btn {
+            padding: 10px 20px;
+            background: transparent;
+            border: 1px solid rgba(0, 212, 170, 0.3);
+            border-radius: 6px;
+            color: var(--text);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .control-btn:hover {
+            background: rgba(0, 212, 170, 0.2);
+            border-color: var(--accent);
+        }
+
+        .control-btn.active {
+            background: var(--accent);
+            color: var(--primary);
+        }
+
+        /* 代码示例 */
+        .code-section {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .code-title {
+            font-size: 1rem;
+            color: var(--accent);
+            margin-bottom: 16px;
+        }
+
+        pre {
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: var(--text);
+            overflow-x: auto;
+        }
+
+        .comment {
+            color: #6a9955;
+        }
+
+        .keyword {
+            color: #569cd6;
+        }
+
+        .string {
+            color: #ce9178;
+        }
+
+        .function {
+            color: #dcdcaa;
+        }
+
+        /* 返回链接 */
+        .back-link {
+            display: block;
+            text-align: center;
+            color: var(--text-muted);
+            text-decoration: none;
+            margin-top: 30px;
+        }
+
+        .back-link:hover {
+            color: var(--accent);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔮 3D 数据可视化组件</h1>
+            <p>基于 urchinbrain/urchin 抽取的通用 3D 渲染能力 · 供全游戏复用</p>
+        </header>
+
+        <div class="demo-section">
+            <div class="demo-title">分子结构可视化演示</div>
+            <div id="canvas-container"></div>
+            <div class="controls">
+                <button class="control-btn" onclick="setVisualization('molecule')">分子结构</button>
+                <button class="control-btn active" onclick="setVisualization('data')">数据图表</button>
+                <button class="control-btn" onclick="setVisualization('space')">天体模拟</button>
+                <button class="control-btn" onclick="toggleAnimation()">暂停/继续</button>
+                <button class="control-btn" onclick="toggleWireframe()">线框模式</button>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <div class="demo-title">组件调用示例</div>
+            <div class="code-section">
+                <div class="code-title">JavaScript 调用方式</div>
+<pre>
+<span class="comment">// 引入 DataViewer3D 组件</span>
+<span class="keyword">import</span> { DataViewer3D } <span class="keyword">from</span> <span class="string">'./common/data-view/viewer.js'</span>;
+
+<span class="comment">// 创建可视化实例</span>
+<span class="keyword">const</span> viewer = <span class="keyword">new</span> <span class="function">DataViewer3D</span>({
+    container: <span class="string">'#canvas-container'</span>,
+    type: <span class="string">'molecule'</span>,  <span class="comment">// molecule | data | space</span>
+    data: moleculeData,
+    color: <span class="string">'#00d4aa'</span>,
+    background: <span class="string">'#1a2a4a'</span>
+});
+
+<span class="comment">// 渲染</span>
+viewer.<span class="function">render</span>();
+
+<span class="comment">// 更新数据</span>
+viewer.<span class="function">update</span>(newData);
+
+<span class="comment">// 销毁</span>
+viewer.<span class="function">dispose</span>();
+</pre>
+            </div>
+        </div>
+
+        <a href="../../index.html" class="back-link">← 返回首页</a>
+    </div>
+
+    <script>
+    /**
+     * 基于 urchinbrain/urchin (BSD License) 抽取通用 3D 渲染能力
+     * GitHub: https://github.com/urchinbrain/urchin
+     * 用途：封装通用 3D 数据可视化组件，供全项目复用
+     */
+
+    // ============ DataViewer3D 组件 ============
+    class DataViewer3D {
+        constructor(options) {
+            this.container = options.container || document.body;
+            this.type = options.type || 'data';
+            this.data = options.data || [];
+            this.color = options.color || 0x00d4aa;
+            this.background = options.background || 0x1a2a4a;
+            this.wireframe = false;
+            this.animating = true;
+
+            this.init();
+        }
+
+        init() {
+            // 场景
+            this.scene = new THREE.Scene();
+            this.scene.background = new THREE.Color(this.background);
+
+            // 相机
+            this.camera = new THREE.PerspectiveCamera(
+                60,
+                this.container.clientWidth / this.container.clientHeight,
+                0.1,
+                1000
+            );
+            this.camera.position.z = 20;
+
+            // 渲染器
+            this.renderer = new THREE.WebGLRenderer({ antialias: true });
+            this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+            this.container.appendChild(this.renderer.domElement);
+
+            // 光照
+            const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+            this.scene.add(ambient);
+
+            const point = new THREE.PointLight(this.color, 0.8);
+            point.position.set(10, 10, 10);
+            this.scene.add(point);
+
+            // 创建内容
+            this.createContent();
+
+            // 事件
+            this.setupEvents();
+
+            // 动画
+            this.animate();
+        }
+
+        createContent() {
+            // 清除旧内容
+            while(this.scene.children.length > 2) {
+                this.scene.remove(this.scene.children[this.scene.children.length - 1]);
+            }
+
+            switch(this.type) {
+                case 'molecule':
+                    this.createMolecule();
+                    break;
+                case 'data':
+                    this.createDataChart();
+                    break;
+                case 'space':
+                    this.createSpace();
+                    break;
+            }
+        }
+
+        createMolecule() {
+            // 分子结构 - 球体和连线
+            const atomCount = 20;
+            const group = new THREE.Group();
+
+            for (let i = 0; i < atomCount; i++) {
+                const radius = 0.3 + Math.random() * 0.4;
+                const geometry = new THREE.SphereGeometry(radius, 32, 32);
+                const material = new THREE.MeshPhongMaterial({
+                    color: this.color,
+                    emissive: 0x003322,
+                    wireframe: this.wireframe
+                });
+                const atom = new THREE.Mesh(geometry, material);
+
+                // 随机位置
+                atom.position.set(
+                    (Math.random() - 0.5) * 15,
+                    (Math.random() - 0.5) * 15,
+                    (Math.random() - 0.5) * 10
+                );
+
+                atom.userData = {
+                    originalPos: atom.position.clone(),
+                    rotSpeed: (Math.random() - 0.5) * 0.02
+                };
+
+                group.add(atom);
+            }
+
+            // 添加连接
+            const lineMaterial = new THREE.LineBasicMaterial({
+                color: this.color,
+                transparent: true,
+                opacity: 0.3
+            });
+
+            for (let i = 0; i < atomCount - 1; i += 2) {
+                const atom1 = group.children[i];
+                const atom2 = group.children[i + 1];
+                if (atom1 && atom2) {
+                    const points = [atom1.position, atom2.position];
+                    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                    const line = new THREE.Line(geometry, lineMaterial);
+                    group.add(line);
+                }
+            }
+
+            this.content = group;
+            this.scene.add(group);
+        }
+
+        createDataChart() {
+            // 3D 柱状图
+            const group = new THREE.Group();
+            const data = [40, 65, 45, 80, 55, 70, 60, 90];
+
+            data.forEach((value, i) => {
+                const height = value * 0.15;
+                const geometry = new THREE.BoxGeometry(1.2, height, 1.2);
+                const material = new THREE.MeshPhongMaterial({
+                    color: this.color,
+                    emissive: 0x002211,
+                    wireframe: this.wireframe
+                });
+                const bar = new THREE.Mesh(geometry, material);
+                bar.position.set((i - data.length/2) * 2, height/2 - 3, 0);
+                bar.userData = { height, index: i };
+                group.add(bar);
+            });
+
+            // 底部平面
+            const planeGeometry = new THREE.PlaneGeometry(20, 10);
+            const planeMaterial = new THREE.MeshBasicMaterial({
+                color: this.color,
+                transparent: true,
+                opacity: 0.1,
+                side: THREE.DoubleSide
+            });
+            const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+            plane.rotation.x = -Math.PI / 2;
+            plane.position.y = -3;
+            group.add(plane);
+
+            this.content = group;
+            this.scene.add(group);
+        }
+
+        createSpace() {
+            // 天体模拟
+            const group = new THREE.Group();
+
+            // 中心恒星
+            const sunGeometry = new THREE.SphereGeometry(2, 32, 32);
+            const sunMaterial = new THREE.MeshBasicMaterial({
+                color: 0xffaa00,
+                wireframe: this.wireframe
+            });
+            const sun = new THREE.Mesh(sunGeometry, sunMaterial);
+            group.add(sun);
+
+            // 行星
+            for (let i = 0; i < 5; i++) {
+                const radius = 0.3 + Math.random() * 0.5;
+                const geometry = new THREE.SphereGeometry(radius, 32, 32);
+                const material = new THREE.MeshPhongMaterial({
+                    color: 0x4488ff,
+                    emissive: 0x001133,
+                    wireframe: this.wireframe
+                });
+                const planet = new THREE.Mesh(geometry, material);
+
+                const orbitRadius = 5 + i * 2.5;
+                planet.position.set(orbitRadius, 0, 0);
+                planet.userData = {
+                    orbitRadius,
+                    orbitSpeed: 0.01 / (i + 1),
+                    angle: Math.random() * Math.PI * 2
+                };
+
+                group.add(planet);
+            }
+
+            this.content = group;
+            this.scene.add(group);
+        }
+
+        setupEvents() {
+            // 鼠标拖拽旋转
+            let isDragging = false;
+            let prevMouse = { x: 0, y: 0 };
+
+            this.renderer.domElement.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                prevMouse = { x: e.clientX, y: e.clientY };
+            });
+
+            this.renderer.domElement.addEventListener('mousemove', (e) => {
+                if (isDragging && this.content) {
+                    const deltaX = e.clientX - prevMouse.x;
+                    const deltaY = e.clientY - prevMouse.y;
+                    this.content.rotation.y += deltaX * 0.01;
+                    this.content.rotation.x += deltaY * 0.01;
+                    prevMouse = { x: e.clientX, y: e.clientY };
+                }
+            });
+
+            this.renderer.domElement.addEventListener('mouseup', () => isDragging = false);
+
+            // 响应式
+            window.addEventListener('resize', () => {
+                this.camera.aspect = this.container.clientWidth / this.container.clientHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+            });
+        }
+
+        animate() {
+            if (this.animating) {
+                requestAnimationFrame(() => this.animate());
+            }
+
+            if (this.content) {
+                // 行星轨道运动
+                if (this.type === 'space') {
+                    this.content.children.forEach(child => {
+                        if (child.userData.orbitRadius) {
+                            child.userData.angle += child.userData.orbitSpeed;
+                            child.position.x = Math.cos(child.userData.angle) * child.userData.orbitRadius;
+                            child.position.z = Math.sin(child.userData.angle) * child.userData.orbitRadius;
+                        }
+                    });
+                }
+
+                // 分子浮动
+                if (this.type === 'molecule') {
+                    this.content.children.forEach((child, i) => {
+                        if (child.userData.originalPos) {
+                            child.position.y = child.userData.originalPos.y +
+                                Math.sin(Date.now() * 0.001 + i) * 0.1;
+                        }
+                    });
+                }
+            }
+
+            this.renderer.render(this.scene, this.camera);
+        }
+
+        update(data) {
+            this.data = data;
+            this.createContent();
+        }
+
+        setType(type) {
+            this.type = type;
+            this.createContent();
+        }
+
+        toggleWireframe() {
+            this.wireframe = !this.wireframe;
+            this.createContent();
+        }
+
+        toggleAnimation() {
+            this.animating = !this.animating;
+            if (this.animating) this.animate();
+        }
+
+        dispose() {
+            this.animating = false;
+            this.renderer.dispose();
+            if (this.renderer.domElement.parentElement) {
+                this.renderer.domElement.parentElement.removeChild(this.renderer.domElement);
+            }
+        }
+    }
+
+    // ============ 全局函数 ============
+    let viewer;
+
+    function initViewer() {
+        if (viewer) viewer.dispose();
+
+        const container = document.getElementById('canvas-container');
+        viewer = new DataViewer3D({
+            container: container,
+            type: 'data',
+            color: 0x00d4aa,
+            background: 0x1a2a4a
+        });
+
+        // 更新按钮状态
+        document.querySelectorAll('.control-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+    }
+
+    function setVisualization(type) {
+        if (viewer) {
+            viewer.setType(type);
+        }
+        document.querySelectorAll('.control-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+    }
+
+    function toggleAnimation() {
+        if (viewer) viewer.toggleAnimation();
+    }
+
+    function toggleWireframe() {
+        if (viewer) viewer.toggleWireframe();
+    }
+
+    // 初始化
+    window.onload = initViewer;
+    </script>
+</body>
+</html>

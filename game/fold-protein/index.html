@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>蛋白质折叠解谜</title>
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        :root {
+            --primary: #1a2a4a;
+            --secondary: #2d3436;
+            --accent: #00d4aa;
+            --text: #ffffff;
+            --text-muted: #a0a0a0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            min-height: 100vh;
+            color: var(--text);
+            overflow: hidden;
+        }
+
+        /* 3D 画布容器 */
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        /* 顶部菜单 */
+        .top-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: rgba(26, 42, 74, 0.95);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 100;
+            border-bottom: 1px solid rgba(0, 212, 170, 0.2);
+        }
+
+        .game-title {
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: var(--accent);
+        }
+
+        .top-nav {
+            display: flex;
+            gap: 20px;
+        }
+
+        .nav-btn {
+            padding: 8px 16px;
+            background: transparent;
+            border: 1px solid rgba(0, 212, 170, 0.3);
+            border-radius: 6px;
+            color: var(--text);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .nav-btn:hover, .nav-btn.active {
+            background: var(--accent);
+            color: var(--primary);
+            border-color: var(--accent);
+        }
+
+        /* 侧边信息面板 */
+        .side-panel {
+            position: fixed;
+            right: 20px;
+            top: 80px;
+            width: 280px;
+            background: rgba(26, 42, 74, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 212, 170, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            z-index: 100;
+        }
+
+        .panel-title {
+            font-size: 0.9rem;
+            color: var(--accent);
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .score-display {
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 8px;
+        }
+
+        .score-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+
+        .level-info {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .level-info:last-child {
+            border-bottom: none;
+        }
+
+        .level-label {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .level-value {
+            color: var(--text);
+            font-size: 0.9rem;
+        }
+
+        /* 操作提示 */
+        .control-hint {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(26, 42, 74, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 212, 170, 0.2);
+            border-radius: 8px;
+            padding: 12px 24px;
+            z-index: 100;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .control-hint span {
+            color: var(--accent);
+            margin: 0 4px;
+        }
+
+        /* 开始菜单 */
+        .menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(26, 42, 74, 0.98);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+
+        .menu-content {
+            text-align: center;
+            max-width: 500px;
+            padding: 40px;
+        }
+
+        .menu-content h1 {
+            font-size: 2.5rem;
+            font-weight: 300;
+            color: var(--accent);
+            margin-bottom: 16px;
+            letter-spacing: 4px;
+        }
+
+        .menu-content p {
+            color: var(--text-muted);
+            margin-bottom: 40px;
+            line-height: 1.8;
+        }
+
+        .menu-btn {
+            display: block;
+            width: 100%;
+            padding: 16px 32px;
+            margin-bottom: 16px;
+            background: transparent;
+            border: 1px solid var(--accent);
+            border-radius: 8px;
+            color: var(--accent);
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .menu-btn:hover {
+            background: var(--accent);
+            color: var(--primary);
+        }
+
+        .menu-btn.secondary {
+            border-color: rgba(255, 255, 255, 0.2);
+            color: var(--text-muted);
+        }
+
+        .menu-btn.secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text);
+        }
+
+        /* 新手引导 */
+        .guide-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 300;
+        }
+
+        .guide-card {
+            background: var(--primary);
+            border: 1px solid var(--accent);
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 450px;
+            text-align: center;
+        }
+
+        .guide-card h3 {
+            color: var(--accent);
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+        }
+
+        .guide-card p {
+            color: var(--text);
+            line-height: 1.8;
+            margin-bottom: 24px;
+        }
+
+        .guide-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .guide-btn {
+            padding: 12px 32px;
+            background: var(--accent);
+            border: none;
+            border-radius: 8px;
+            color: var(--primary);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .guide-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* 关卡选择 */
+        .level-select {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .level-btn {
+            padding: 16px;
+            background: rgba(0, 212, 170, 0.1);
+            border: 1px solid rgba(0, 212, 170, 0.3);
+            border-radius: 8px;
+            color: var(--text);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .level-btn:hover:not(:disabled) {
+            background: var(--accent);
+            color: var(--primary);
+        }
+
+        .level-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .level-btn.locked::after {
+            content: ' 🔒';
+        }
+
+        /* 隐藏类 */
+        .hidden {
+            display: none !important;
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .side-panel {
+                right: 10px;
+                width: 200px;
+                padding: 16px;
+            }
+
+            .control-hint {
+                font-size: 0.8rem;
+                padding: 10px 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 3D 画布 -->
+    <div id="canvas-container"></div>
+
+    <!-- 顶部菜单 -->
+    <div class="top-bar" id="topBar">
+        <span class="game-title">🧬 蛋白质折叠解谜</span>
+        <div class="top-nav">
+            <button class="nav-btn" onclick="showMenu()">菜单</button>
+            <button class="nav-btn" onclick="resetProtein()">重置</button>
+        </div>
+    </div>
+
+    <!-- 侧边信息面板 -->
+    <div class="side-panel" id="sidePanel">
+        <div class="panel-title">当前状态</div>
+        <div class="score-display" id="score">0</div>
+        <div class="score-label">折叠评分</div>
+
+        <div class="level-info">
+            <span class="level-label">关卡</span>
+            <span class="level-value" id="currentLevel">新手-1</span>
+        </div>
+        <div class="level-info">
+            <span class="level-label">目标分数</span>
+            <span class="level-value" id="targetScore">100</span>
+        </div>
+        <div class="level-info">
+            <span class="level-label">最优分数</span>
+            <span class="level-value" id="bestScore">0</span>
+        </div>
+    </div>
+
+    <!-- 操作提示 -->
+    <div class="control-hint" id="controlHint">
+        <span>拖拽</span> 旋转视角 | <span>滚轮</span> 缩放 | <span>点击原子</span> 选择 | <span>拖拽原子</span> 折叠
+    </div>
+
+    <!-- 开始菜单 -->
+    <div class="menu-overlay" id="menuOverlay">
+        <div class="menu-content">
+            <h1>蛋白质折叠解谜</h1>
+            <p>
+                基于 GitHub foldit/foldit 开源项目二次开发<br>
+                通过拖拽氨基酸链，将其折叠成正确的3D结构<br>
+                达到目标分数即可通关
+            </p>
+            <button class="menu-btn" onclick="startGame('tutorial')">开始游戏</button>
+            <button class="menu-btn" onclick="showLevelSelect()">选择关卡</button>
+            <button class="menu-btn secondary" onclick="location.href='../../index.html'">返回首页</button>
+        </div>
+    </div>
+
+    <!-- 新手引导 -->
+    <div class="guide-overlay hidden" id="guideOverlay">
+        <div class="guide-card">
+            <div class="guide-icon" id="guideIcon">👋</div>
+            <h3 id="guideTitle">欢迎来到蛋白质折叠世界</h3>
+            <p id="guideText">
+                蛋白质是由氨基酸组成的长链分子。<br>
+                它会自发地折叠成特定的三维结构。<br><br>
+                你的任务是帮助蛋白质折叠成正确形状！
+            </p>
+            <button class="guide-btn" onclick="nextGuide()">下一步</button>
+        </div>
+    </div>
+
+    <!-- 关卡选择 -->
+    <div class="menu-overlay hidden" id="levelSelectOverlay">
+        <div class="menu-content">
+            <h1>选择关卡</h1>
+            <div class="level-select" id="levelSelectGrid"></div>
+            <button class="menu-btn secondary" style="margin-top: 20px" onclick="hideLevelSelect()">返回</button>
+        </div>
+    </div>
+
+    <script>
+    /**
+     * 本模块基于 GitHub foldit/foldit 开源项目二次开发
+     * 开源协议：遵循原项目协议
+     * 用途：科研蛋白折叠解谜游戏，仅做网页适配与界面改造
+     */
+
+    // ============ 游戏配置 ============
+    const LEVELS = [
+        { id: 'tutorial', name: '新手-1', target: 80, unlocked: true },
+        { id: 'tutorial2', name: '新手-2', target: 100, unlocked: true },
+        { id: 'basic1', name: '入门-1', target: 120, unlocked: false },
+        { id: 'basic2', name: '入门-2', target: 140, unlocked: false },
+        { id: 'normal1', name: '普通-1', target: 160, unlocked: false },
+        { id: 'normal2', name: '普通-2', target: 180, unlocked: false },
+    ];
+
+    const GUIDE_STEPS = [
+        { icon: '👋', title: '欢迎来到蛋白质折叠世界', text: '蛋白质是由氨基酸组成的长链分子。它会自发地折叠成特定的三维结构。' },
+        { icon: '🖱️', title: '基本操作', text: '拖拽空白区域旋转视角，滚轮缩放。点击原子选中它，然后拖拽进行折叠。' },
+        { icon: '🎯', title: '游戏目标', text: '让氨基酸链折叠成紧密的结构，评分达到目标分数即可过关。' },
+        { icon: '🎮', title: '开始游戏', text: '了解了基本操作后，开始你的蛋白质折叠之旅吧！' },
+    ];
+
+    // ============ 全局变量 ============
+    let scene, camera, renderer, controls;
+    let protein = null;
+    let selectedAtom = null;
+    let isDragging = false;
+    let previousMousePosition = { x: 0, y: 0 };
+    let currentLevel = 'tutorial';
+    let score = 0;
+    let guideStep = 0;
+
+    // ============ Three.js 初始化 ============
+    function init3D() {
+        const container = document.getElementById('canvas-container');
+
+        // 场景
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a2a4a);
+
+        // 相机
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 0, 30);
+
+        // 渲染器
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+
+        // 光照
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0x00d4aa, 0.8);
+        directionalLight.position.set(10, 10, 10);
+        scene.add(directionalLight);
+
+        const pointLight = new THREE.PointLight(0x00ffcc, 0.5);
+        pointLight.position.set(-10, -10, 10);
+        scene.add(pointLight);
+
+        // 创建蛋白质
+        createProtein();
+
+        // 添加鼠标事件
+        renderer.domElement.addEventListener('mousedown', onMouseDown);
+        renderer.domElement.addEventListener('mousemove', onMouseMove);
+        renderer.domElement.addEventListener('mouseup', onMouseUp);
+        renderer.domElement.addEventListener('wheel', onMouseWheel);
+        renderer.domElement.addEventListener('touchstart', onTouchStart, { passive: false });
+        renderer.domElement.addEventListener('touchmove', onTouchMove, { passive: false });
+        renderer.domElement.addEventListener('touchend', onTouchEnd);
+
+        // 响应式
+        window.addEventListener('resize', onWindowResize);
+
+        // 动画循环
+        animate();
+    }
+
+    // ============ 蛋白质创建 ============
+    function createProtein() {
+        if (protein) {
+            scene.remove(protein);
+        }
+
+        protein = new THREE.Group();
+
+        // 氨基酸数据 - 简化的折叠链
+        const atomCount = 12;
+        const colors = [0x00d4aa, 0x00a080, 0x00ffcc, 0x00cc99];
+
+        for (let i = 0; i < atomCount; i++) {
+            const geometry = new THREE.SphereGeometry(0.8, 32, 32);
+            const material = new THREE.MeshPhongMaterial({
+                color: colors[i % colors.length],
+                emissive: 0x003322,
+                shininess: 100
+            });
+            const atom = new THREE.Mesh(geometry, material);
+
+            // 初始位置 - 螺旋状排列
+            const angle = (i / atomCount) * Math.PI * 4;
+            const radius = 2;
+            atom.position.x = Math.cos(angle) * radius;
+            atom.position.y = (i - atomCount / 2) * 1.5;
+            atom.position.z = Math.sin(angle) * radius;
+
+            atom.userData = { index: i, originalPos: atom.position.clone() };
+            protein.add(atom);
+        }
+
+        // 添加连接线
+        const lineGeometry = new THREE.BufferGeometry();
+        const positions = [];
+        for (let i = 0; i < atomCount - 1; i++) {
+            const pos1 = protein.children[i].position;
+            const pos2 = protein.children[i + 1].position;
+            positions.push(pos1.x, pos1.y, pos1.z);
+            positions.push(pos2.x, pos2.y, pos2.z);
+        }
+        lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        const lineMaterial = new THREE.LineBasicMaterial({ color: 0x00d4aa, opacity: 0.5, transparent: true });
+        const lines = new THREE.LineSegments(lineGeometry, lineMaterial);
+        protein.add(lines);
+
+        scene.add(protein);
+
+        // 随机扰动初始结构
+        randomizeProtein();
+    }
+
+    function randomizeProtein() {
+        for (let i = 0; i < protein.children.length; i++) {
+            const atom = protein.children[i];
+            if (atom instanceof THREE.Mesh) {
+                atom.position.x += (Math.random() - 0.5) * 4;
+                atom.position.z += (Math.random() - 0.5) * 4;
+            }
+        }
+    }
+
+    // ============ 鼠标/触摸事件 ============
+    function onMouseDown(event) {
+        const mouse = getMousePosition(event);
+        const intersects = getIntersects(mouse);
+
+        if (intersects.length > 0) {
+            selectedAtom = intersects[0].object;
+            isDragging = true;
+            previousMousePosition = { x: event.clientX, y: event.clientY };
+        } else {
+            isDragging = true;
+            previousMousePosition = { x: event.clientX, y: event.clientY };
+        }
+    }
+
+    function onMouseMove(event) {
+        if (isDragging) {
+            const deltaX = event.clientX - previousMousePosition.x;
+            const deltaY = event.clientY - previousMousePosition.y;
+
+            if (selectedAtom) {
+                // 拖拽原子
+                selectedAtom.position.x += deltaX * 0.05;
+                selectedAtom.position.y -= deltaY * 0.05;
+            } else {
+                // 旋转视角
+                protein.rotation.y += deltaX * 0.01;
+                protein.rotation.x += deltaY * 0.01;
+            }
+
+            previousMousePosition = { x: event.clientX, y: event.clientY };
+            updateScore();
+        }
+    }
+
+    function onMouseUp() {
+        isDragging = false;
+        selectedAtom = null;
+    }
+
+    function onMouseWheel(event) {
+        camera.position.z += event.deltaY * 0.05;
+        camera.position.z = Math.max(10, Math.min(50, camera.position.z));
+    }
+
+    function onTouchStart(event) {
+        event.preventDefault();
+        if (event.touches.length === 1) {
+            const touch = event.touches[0];
+            onMouseDown({ clientX: touch.clientX, clientY: touch.clientY });
+        }
+    }
+
+    function onTouchMove(event) {
+        event.preventDefault();
+        if (event.touches.length === 1) {
+            const touch = event.touches[0];
+            onMouseMove({ clientX: touch.clientX, clientY: touch.clientY });
+        }
+    }
+
+    function onTouchEnd() {
+        onMouseUp();
+    }
+
+    function getMousePosition(event) {
+        const rect = renderer.domElement.getBoundingClientRect();
+        return {
+            x: ((event.clientX - rect.left) / rect.width) * 2 - 1,
+            y: -((event.clientY - rect.top) / rect.height) * 2 + 1
+        };
+    }
+
+    function getIntersects(mouse) {
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, camera);
+        return raycaster.intersectObjects(protein.children);
+    }
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    // ============ 评分系统 ============
+    function updateScore() {
+        if (!protein) return;
+
+        let totalDistance = 0;
+        let atomCount = 0;
+
+        for (let i = 0; i < protein.children.length; i++) {
+            const atom = protein.children[i];
+            if (atom instanceof THREE.Mesh) {
+                const orig = atom.userData.originalPos;
+                const dist = atom.position.distanceTo(orig);
+                totalDistance += dist;
+                atomCount++;
+            }
+        }
+
+        // 计算折叠紧凑度分数
+        let compactness = 0;
+        for (let i = 0; i < protein.children.length - 1; i++) {
+            const atom1 = protein.children[i];
+            const atom2 = protein.children[i + 1];
+            if (atom1 instanceof THREE.Mesh && atom2 instanceof THREE.Mesh) {
+                compactness += 10 - atom1.position.distanceTo(atom2.position);
+            }
+        }
+
+        // 基础分 - 位移分 + 紧凑度分
+        score = Math.max(0, Math.round(50 - totalDistance * 2 + compactness * 5));
+        document.getElementById('score').textContent = score;
+
+        // 检查通关
+        const level = LEVELS.find(l => l.id === currentLevel);
+        if (level && score >= level.target) {
+            setTimeout(() => alert('🎉 恭喜通关！'), 100);
+            saveProgress(currentLevel);
+        }
+    }
+
+    // ============ 游戏控制 ============
+    function showMenu() {
+        document.getElementById('menuOverlay').classList.remove('hidden');
+    }
+
+    function hideMenu() {
+        document.getElementById('menuOverlay').classList.add('hidden');
+    }
+
+    function showLevelSelect() {
+        hideMenu();
+        const grid = document.getElementById('levelSelectGrid');
+        grid.innerHTML = '';
+
+        LEVELS.forEach(level => {
+            const btn = document.createElement('button');
+            btn.className = 'level-btn' + (level.unlocked ? '' : ' locked');
+            btn.textContent = level.name;
+            btn.disabled = !level.unlocked;
+            btn.onclick = () => level.unlocked && startGame(level.id);
+            grid.appendChild(btn);
+        });
+
+        document.getElementById('levelSelectOverlay').classList.remove('hidden');
+    }
+
+    function hideLevelSelect() {
+        document.getElementById('levelSelectOverlay').classList.add('hidden');
+    }
+
+    function startGame(levelId) {
+        currentLevel = levelId || 'tutorial';
+        const level = LEVELS.find(l => l.id === currentLevel);
+
+        document.getElementById('currentLevel').textContent = level?.name || currentLevel;
+        document.getElementById('targetScore').textContent = level?.target || 100;
+        document.getElementById('bestScore').textContent = localStorage.getItem(`best_${currentLevel}`) || 0;
+
+        hideMenu();
+        hideLevelSelect();
+
+        // 重置蛋白质
+        createProtein();
+
+        // 显示引导
+        if (currentLevel === 'tutorial' && !localStorage.getItem('fold_guide_done')) {
+            showGuide();
+        }
+    }
+
+    function resetProtein() {
+        createProtein();
+        score = 0;
+        document.getElementById('score').textContent = '0';
+    }
+
+    // ============ 新手引导 ============
+    function showGuide() {
+        guideStep = 0;
+        updateGuide();
+        document.getElementById('guideOverlay').classList.remove('hidden');
+    }
+
+    function updateGuide() {
+        const step = GUIDE_STEPS[guideStep];
+        document.getElementById('guideIcon').textContent = step.icon;
+        document.getElementById('guideTitle').textContent = step.title;
+        document.getElementById('guideText').textContent = step.text;
+    }
+
+    function nextGuide() {
+        guideStep++;
+        if (guideStep >= GUIDE_STEPS.length) {
+            document.getElementById('guideOverlay').classList.add('hidden');
+            localStorage.setItem('fold_guide_done', 'true');
+        } else {
+            updateGuide();
+        }
+    }
+
+    // ============ 数据存储 ============
+    function saveProgress(levelId) {
+        const level = LEVELS.find(l => l.id === levelId);
+        if (!level) return;
+
+        // 保存最高分
+        const bestKey = `best_${levelId}`;
+        const currentBest = parseInt(localStorage.getItem(bestKey) || '0');
+        if (score > currentBest) {
+            localStorage.setItem(bestKey, score);
+        }
+
+        // 解锁下一关
+        const levelIndex = LEVELS.findIndex(l => l.id === levelId);
+        if (levelIndex < LEVELS.length - 1) {
+            LEVELS[levelIndex + 1].unlocked = true;
+        }
+
+        // 保存游戏统计
+        const allStats = JSON.parse(localStorage.getItem('scienceGameStats') || '{}');
+        if (!allStats['fold-protein']) allStats['fold-protein'] = { playTime: 0, levelCompleted: 0, totalScore: 0, achievements: [] };
+        allStats['fold-protein'].totalScore += score;
+        allStats['fold-protein'].levelCompleted = Math.max(allStats['fold-protein'].levelCompleted || 0, levelIndex + 1);
+        localStorage.setItem('scienceGameStats', JSON.stringify(allStats));
+    }
+
+    // ============ 动画循环 ============
+    function animate() {
+        requestAnimationFrame(animate);
+
+        // 蛋白质轻微浮动
+        if (protein) {
+            protein.children.forEach((child, i) => {
+                if (child instanceof THREE.Mesh) {
+                    child.position.y += Math.sin(Date.now() * 0.001 + i) * 0.005;
+                }
+            });
+        }
+
+        renderer.render(scene, camera);
+    }
+
+    // ============ 初始化 ============
+    window.onload = init3D;
+    </script>
+</body>
+</html>
